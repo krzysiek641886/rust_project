@@ -1,9 +1,6 @@
 use actix_web::{web, App, HttpResponse, HttpServer, Responder};
-use rusqlite::Connection;
-use std::sync::Mutex;
-
-// Define a global mutable variable protected by a Mutex
-static DB_CONN: Mutex<Option<Connection>> = Mutex::new(None);
+mod database_handling;
+use database_handling::{initialize_db, DB_CONN};
 
 // Define a simple handler function
 async fn greet() -> impl Responder {
@@ -13,25 +10,11 @@ async fn greet() -> impl Responder {
         None => HttpResponse::InternalServerError().body("Database connection is not initialized."),
     }
 }
-// Function to initialize the database connection
-fn initialize_db() {
-    let conn = Connection::open("dummy_database.db").expect("Failed to open database");
-    conn.execute(
-        "create table if not exists dummy_table (
-            id integer primary key,
-            name text not null unique
-            )",
-        [],
-    )
-    .expect("Failed to create dummy_table table");
-    let mut db_conn = DB_CONN.lock().unwrap();
-    *db_conn = Some(conn);
-}
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     // Initialize the database
-    initialize_db();
+    initialize_db("dummy_database.db");
 
     // Start the HTTP server
     HttpServer::new(|| {
