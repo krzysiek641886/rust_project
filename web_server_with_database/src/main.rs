@@ -3,6 +3,8 @@ use actix_web::{web, App, HttpResponse, HttpServer, Responder};
 use serde_json::json;
 mod database_handling;
 use database_handling::{initialize_db, DB_CONN};
+mod orca_slicer_interface;
+use orca_slicer_interface::{hello_world_orca_slicer_interface};
 
 // Define a simple handler function
 async fn greet() -> impl Responder {
@@ -18,6 +20,7 @@ async fn greet() -> impl Responder {
 async fn main() -> std::io::Result<()> {
     // Initialize the database
     initialize_db("dummy_database.db");
+    hello_world_orca_slicer_interface();
 
     // Start the HTTP server
     HttpServer::new(|| {
