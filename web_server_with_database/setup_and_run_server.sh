@@ -1,5 +1,6 @@
 #!/bin/bash
-# OrcaSlicer path web_server_with_database/orca_slicer/build_x86_64/OrcaSlicer/OrcaSlicer.app/Contents/MacOS/OrcaSlicer
+
+orca_slicer_path="orca_slicer/build_x86_64/OrcaSlicer/OrcaSlicer.app/Contents/MacOS/OrcaSlicer"
 
 # Function to display the help menu
 show_help() {
@@ -19,7 +20,7 @@ setup_project() {
 # Function to run the server
 run_server() {
     echo "Running the server..."
-    cargo run -- --ws-path ${PWD} --db-name wyceniarka_database.db
+    cargo run -- --ws-path ${PWD} --db-name wyceniarka_database.db --orca-slicer-path ${orca_slicer_path}
 }
 
 # Function to run the server

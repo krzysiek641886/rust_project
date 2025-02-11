@@ -1,7 +1,15 @@
+
+
 // Function to initialize the database connection
 pub fn hello_world_orca_slicer_interface() {
     println!("Hello, world!");
 }
+
+// pub fn initialize_orca_slicer_if(ws_path: &str, orca_path: &str) {
+//     WS_PATH = Some(ws_path);
+//     SLICER_EXEC_PATH = Some(orca_path);
+//     println!("Orca Slicer Interface initialized with path: {}", SLICER_EXEC_PATH.unwrap());
+// }
 
 #[cfg(test)]
 mod tests {

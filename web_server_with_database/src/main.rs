@@ -5,7 +5,7 @@ use serde_json::json;
 mod database_handling;
 use database_handling::{initialize_db, DB_CONN};
 mod orca_slicer_interface;
-use orca_slicer_interface::{hello_world_orca_slicer_interface};
+use orca_slicer_interface::hello_world_orca_slicer_interface;
 
 /// Command-line arguments
 #[derive(Parser, Debug)]
@@ -16,6 +16,8 @@ struct Args {
     db_name: String,
     #[clap(short='w', long="ws-path", help = "Path to the server directory")]
     ws_path: String,
+    #[clap(short='o', long="orca-slicer-path", help = "Path to Orca Slicer executable")]
+    orca_path: String,
 }
 
 // Define a simple handler function
