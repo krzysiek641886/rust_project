@@ -1,5 +1,6 @@
 use lazy_static::lazy_static;
 use std::sync::Mutex;
+use crate::orca_slicer_interface::orca_slicer_cli::ping_orca_slicer;
 
 struct State {
     ws_path: Mutex<String>,
@@ -20,6 +21,9 @@ pub fn initialize_orca_slicer_if(ws_path: &str, orca_path: &str) {
     *ws_path_lock = ws_path.to_string();
     *slicer_exec_path_lock = orca_path.to_string();
 
+    if let Err(e) = ping_orca_slicer(orca_path) {
+        panic!("Failed to ping Orca Slicer: {:?}", e);
+    }
     println!("Orca Slicer Interface initialized with path Orca Slicer path:\n {:?}", orca_path);
 }
 
