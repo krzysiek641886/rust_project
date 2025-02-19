@@ -1,0 +1,3 @@
+[submodule "web_server_with_database/orca_slicer"]
+	path = web_server_with_database/orca_slicer
+	url = https://github.com/SoftFever/OrcaSlicer.git

@@ -1,5 +1,4 @@
 use rusqlite::Connection;
-use std::fs;
 use std::sync::Mutex;
 
 // Define a global mutable variable protected by a Mutex
