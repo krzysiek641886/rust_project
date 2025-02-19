@@ -5,7 +5,7 @@ use serde_json::json;
 mod database_handling;
 use database_handling::{initialize_db, DB_CONN};
 mod orca_slicer_interface;
-use orca_slicer_interface::hello_world_orca_slicer_interface;
+use orca_slicer_interface::{initialize_orca_slicer_if};
 
 /// Command-line arguments
 #[derive(Parser, Debug)]
@@ -37,7 +37,7 @@ async fn main() -> std::io::Result<()> {
 
     // Initialize the database
     initialize_db(&args.db_name);
-    hello_world_orca_slicer_interface();
+    initialize_orca_slicer_if(&args.ws_path, &args.orca_path);
 
     // Start the HTTP server
     HttpServer::new(|| {
