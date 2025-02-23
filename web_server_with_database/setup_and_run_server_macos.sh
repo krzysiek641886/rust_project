@@ -20,7 +20,7 @@ setup_project() {
 # Function to run the server
 run_server() {
     echo "Running the server..."
-    cargo run -- --ws-path ${PWD} --db-name wyceniarka_database.db --orca-slicer-path ${orca_slicer_path}
+    cargo run -- --ws-path ${PWD} --db-name wyceniarka_database.db --orca-slicer-path ${orca_slicer_path} --system macos
 }
 
 # Function to run the server
