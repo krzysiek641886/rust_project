@@ -1,11 +1,22 @@
 use rusqlite::Connection;
 use std::sync::Mutex;
+use lazy_static::lazy_static;
+struct State {
+    db_name: Mutex<String>,
+    db_conn: Mutex<Option<Connection>>,
+}
 
-// Define a global mutable variable protected by a Mutex
-pub static DB_CONN: Mutex<Option<Connection>> = Mutex::new(None);
+lazy_static! {
+    static ref DB_HANDLER_STATE: State = State {
+        db_name: Mutex::new(String::from("")),
+        db_conn: Mutex::new(None),
+    };
+}
 
 // Function to initialize the database connection
 pub fn initialize_db(db_name: &str) {
+    let mut db_name_lock = DB_HANDLER_STATE.db_name.lock().unwrap();
+    *db_name_lock = db_name.to_string();
     let conn = Connection::open(db_name).expect("Failed to open database");
     conn.execute(
         "create table if not exists dummy_table (
@@ -14,7 +25,7 @@ pub fn initialize_db(db_name: &str) {
         [],
     )
     .expect("Failed to create dummy_table table");
-    let mut db_conn = DB_CONN.lock().unwrap();
+    let mut db_conn = DB_HANDLER_STATE.db_conn.lock().unwrap();
     *db_conn = Some(conn);
 }
 
@@ -22,13 +33,14 @@ pub fn initialize_db(db_name: &str) {
 mod tests {
     use super::*;
     use std::fs;
+    use std::path::Path;
 
     #[test]
     fn test_initialize_db() {
         let db_name = "test_db.sqlite";
 
         // Ensure the test database file does not exist before the test
-        if fs::metadata(db_name).is_ok() {
+        if Path::new(db_name).exists() {
             fs::remove_file(db_name).expect("Failed to delete existing test database file");
         }
 
@@ -37,13 +49,13 @@ mod tests {
 
         // Check if the database file was created
         assert!(
-            fs::metadata(db_name).is_ok(),
+            Path::new(db_name).exists(),
             "Database file was not created"
         );
 
         // Check if the table was created
         {
-            let db_conn = DB_CONN.lock().unwrap();
+            let db_conn = DB_HANDLER_STATE.db_conn.lock().unwrap();
             let conn = db_conn
                 .as_ref()
                 .expect("Database connection is not initialized");

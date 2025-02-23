@@ -1,48 +1,54 @@
 use actix_files as fs;
-use actix_web::{web, App, HttpResponse, HttpServer, Responder};
+use actix_web::{App, HttpServer};
 use clap::Parser;
-use serde_json::json;
-mod database_handling;
-use database_handling::{initialize_db, DB_CONN};
+mod database_handler;
+use database_handler::initialize_db;
 mod orca_slicer_interface;
-use orca_slicer_interface::{initialize_orca_slicer_if};
+use orca_slicer_interface::initialize_orca_slicer_if;
+use std::sync::Mutex;
+use lazy_static::lazy_static;
 
 /// Command-line arguments
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
 struct Args {
     /// Database name
-    #[clap(short='d', long="db-name", default_value = "default_db_name.db")]
+    #[clap(short='d', long="db-name", default_value = "default_db_name.db", help = "Database name for storing orders")]
     db_name: String,
     #[clap(short='w', long="ws-path", help = "Path to the server directory")]
     ws_path: String,
     #[clap(short='o', long="orca-slicer-path", help = "Path to Orca Slicer executable")]
     orca_path: String,
+    #[clap(short='s', long="system", help = "Path to Orca Slicer executable")]
+    system: String,
 }
 
-// Define a simple handler function
-async fn greet() -> impl Responder {
-    let db_conn = DB_CONN.lock().unwrap();
-    let status = match &*db_conn {
-        Some(_) => "Database connection is initialized.",
-        None => "Database connection is not initialized.",
-    };
-    HttpResponse::Ok().json(json!({ "status": status }))
+struct State {
+    ws_path: Mutex<String>
+}
+lazy_static! {
+    static ref MAIN_STATE: State = State {
+        ws_path: Mutex::new(String::from("")),
+};
+}
+
+fn initialize_modules_with_cmd_arguments(args: Args) {
+    // This consumes the args struct and initializes the global state. No other use of args is allowed after this point.
+    initialize_db(&args.db_name);
+    initialize_orca_slicer_if(&args.system, &args.orca_path);
+    let mut ws_path_lock = MAIN_STATE.ws_path.lock().unwrap();
+    *ws_path_lock = args.ws_path.to_string();
 }
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     // Parse command-line arguments
     let args = Args::parse();
-
-    // Initialize the database
-    initialize_db(&args.db_name);
-    initialize_orca_slicer_if(&args.ws_path, &args.orca_path);
+    initialize_modules_with_cmd_arguments(args);
 
     // Start the HTTP server
     HttpServer::new(|| {
         App::new()
-            .route("/api/greet", web::get().to(greet)) // Set up a route for the API
             .service(fs::Files::new("/", "./src/frontend").index_file("index.html")) // Serve static files
     })
     .bind("127.0.0.1:8080")? // Bind the server to localhost on port 8080
