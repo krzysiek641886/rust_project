@@ -14,12 +14,14 @@ show_help() {
 # Function to set up the project
 setup_project() {
     echo "Setting up the project..."
+    mkdir -p data_files
     # Add setup commands here
 }
 
 # Function to run the server
 run_server() {
     echo "Running the server..."
+    mkdir -p data_files
     cargo run -- --ws-path ${PWD} --db-name wyceniarka_database.db --orca-slicer-path ${orca_slicer_path} --system macos
 }
 
