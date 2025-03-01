@@ -5,6 +5,11 @@
  */
 document.addEventListener("DOMContentLoaded", function () {
     fetch("/api/backendstatus")
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}, failed to initialize the server correctly.`);
+            }
+        })
         .then(data => {
             const formContainer = document.getElementById("form-container");
             formContainer.innerHTML = `
@@ -21,8 +26,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 </form>
             `;
         })
-        // .catch(error => {
-        //     console.error("Error fetching data:", error);
-        //     document.getElementById("db_init_status_message").innerText = error.message;
-        // });
+        .catch(error => {
+            document.getElementById("form-container").innerText = error.message;
+        });
 });

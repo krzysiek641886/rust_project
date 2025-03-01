@@ -1,6 +1,6 @@
-use actix_web::{Responder, HttpResponse};
-use std::sync::Mutex;
+use actix_web::{HttpResponse, Responder};
 use lazy_static::lazy_static;
+use std::sync::Mutex;
 
 struct State {
     app_init_status: Mutex<bool>,
@@ -23,6 +23,7 @@ pub async fn app_init_status_handler() -> impl Responder {
     if *API_HANDLER_STATE.app_init_status.lock().unwrap() {
         return HttpResponse::Ok().body("Application initialized successfully");
     } else {
-        return HttpResponse::InternalServerError().body("An error occurred during application initialization");
+        return HttpResponse::InternalServerError()
+            .body("An error occurred during application initialization");
     }
 }

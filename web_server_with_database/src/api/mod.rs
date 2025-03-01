@@ -1,2 +1,2 @@
 mod api;
-pub use api::{initialize_api_handler, app_init_status_handler};
+pub use api::{app_init_status_handler, initialize_api_handler};

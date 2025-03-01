@@ -1,27 +1,36 @@
 use actix_files as fs;
-use actix_web::{App, HttpServer, web};
+use actix_web::{web, App, HttpServer};
 use clap::Parser;
 mod database_handler;
 use database_handler::initialize_db;
 mod orca_slicer_interface;
+use lazy_static::lazy_static;
 use orca_slicer_interface::initialize_orca_slicer_if;
 use std::sync::Mutex;
-use lazy_static::lazy_static;
 mod api;
-use api::{initialize_api_handler, app_init_status_handler};
+use api::{app_init_status_handler, initialize_api_handler};
 
 /// Command-line arguments
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
 struct Args {
     /// Database name
-    #[clap(short='d', long="db-name", default_value = "default_db_name.db", help = "Database name for storing orders")]
+    #[clap(
+        short = 'd',
+        long = "db-name",
+        default_value = "default_db_name.db",
+        help = "Database name for storing orders"
+    )]
     db_name: String,
-    #[clap(short='w', long="ws-path", help = "Path to the server directory")]
+    #[clap(short = 'w', long = "ws-path", help = "Path to the server directory")]
     ws_path: String,
-    #[clap(short='o', long="orca-slicer-path", help = "Path to Orca Slicer executable")]
+    #[clap(
+        short = 'o',
+        long = "orca-slicer-path",
+        help = "Path to Orca Slicer executable"
+    )]
     orca_path: String,
-    #[clap(short='s', long="system", help = "Path to Orca Slicer executable")]
+    #[clap(short = 's', long = "system", help = "Path to Orca Slicer executable")]
     system: String,
 }
 
@@ -31,7 +40,7 @@ struct State {
 lazy_static! {
     static ref MAIN_STATE: State = State {
         ws_path: Mutex::new(String::from("")),
-};
+    };
 }
 
 fn initialize_modules_with_cmd_arguments(args: Args) {
@@ -50,8 +59,9 @@ async fn main() -> std::io::Result<()> {
 
     HttpServer::new(|| {
         App::new()
-            // .service(fs::Files::new("/", "./src/frontend").index_file("index.html")) // Serve static files
             .route("/api/backendstatus", web::get().to(app_init_status_handler))
+            // The index page has to be initialized after API endpoints
+            .service(fs::Files::new("/", "./src/frontend").index_file("index.html"))
     })
     .bind("127.0.0.1:8080")? // Bind the server to localhost on port 8080
     .run()
