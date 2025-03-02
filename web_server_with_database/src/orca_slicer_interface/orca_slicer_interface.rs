@@ -24,7 +24,6 @@ pub fn initialize_orca_slicer_if(ws_path: &str, orca_path: &str) {
     if let Err(e) = ping_orca_slicer(orca_path) {
         panic!("Failed to ping Orca Slicer: {:?}", e);
     }
-    println!("Orca Slicer Interface initialized with path Orca Slicer path:\n {:?}", orca_path);
 }
 
 #[cfg(test)]
