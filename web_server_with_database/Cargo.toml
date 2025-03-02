@@ -13,3 +13,4 @@ clap = { version = "3.0", features = ["derive"] }
 lazy_static = "1.4.0"
 actix-multipart = "0.4"
 sanitize-filename = "0.3"
+futures = "0.3"

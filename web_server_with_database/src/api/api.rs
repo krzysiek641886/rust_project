@@ -1,10 +1,10 @@
-use actix_web::{/*web,*/ HttpResponse, Responder};
+use actix_multipart::Multipart;
+use actix_web::{HttpResponse, Responder};
+use futures::StreamExt;
 use lazy_static::lazy_static;
+use std::fs::File;
+use std::io::Write;
 use std::sync::Mutex;
-// use actix_multipart::Multipart;
-// use futures::StreamExt;
-// use std::io::Write;
-// use std::fs::File;
 
 struct State {
     app_init_status: Mutex<bool>,
@@ -32,33 +32,58 @@ pub async fn app_init_status_handler() -> impl Responder {
     }
 }
 
-pub async fn upload_file_handler(/*mut payload: Multipart*/) -> impl Responder {
-    // while let Some(item) = payload.next().await {
-    //     let mut field = match item {
-    //         Ok(field) => field,
-    //         Err(_) => return HttpResponse::InternalServerError().body("Error processing file upload"),
-    //     };
+pub async fn form_submission_handler(mut payload: Multipart) -> impl Responder {
+    while let Some(item) = payload.next().await {
+        let mut field = match item {
+            Ok(field) => field,
+            Err(_) => {
+                return HttpResponse::InternalServerError().body("Error processing file upload")
+            }
+        };
 
-    //     let content_disposition = field.content_disposition().unwrap();
-    //     let filename = content_disposition.get_filename().unwrap();
-    //     let filepath = format!("./uploads/{}", sanitize_filename::sanitize(&filename));
+        let content_disposition = field.content_disposition();
+        match content_disposition.get_name() {
+            Some(name) => match name {
+                "name" => {
+                    println!("Received name, handling TBA");
+                }
+                "email" => {
+                    println!("Received email, handling TBA");
+                }
+                "copies_nbr" => {
+                    println!("Received copies_nbr, handling TBA");
+                }
+                "file" => {
+                    let filepath = format!(
+                        "./data_files/{}",
+                        sanitize_filename::sanitize(&content_disposition.get_filename().unwrap())
+                    );
 
-    //     let mut f = match File::create(filepath) {
-    //         Ok(f) => f,
-    //         Err(_) => return HttpResponse::InternalServerError().body("Error creating file"),
-    //     };
+                    let mut f = match File::create(filepath) {
+                        Ok(f) => f,
+                        Err(_) => {
+                            return HttpResponse::InternalServerError().body("Error creating file")
+                        }
+                    };
 
-    //     while let Some(chunk) = field.next().await {
-    //         let data = match chunk {
-    //             Ok(data) => data,
-    //             Err(_) => return HttpResponse::InternalServerError().body("Error reading file chunk"),
-    //         };
-    //         if let Err(_) = f.write_all(&data) {
-    //             return HttpResponse::InternalServerError().body("Error writing file chunk");
-    //         }
-    //     }
-    // }
-
-    // HttpResponse::Ok().body("File uploaded successfully")
-    return HttpResponse::InternalServerError().body("File upload not yet implemented");
+                    while let Some(chunk) = field.next().await {
+                        let data = match chunk {
+                            Ok(data) => data,
+                            Err(_) => {
+                                return HttpResponse::InternalServerError()
+                                    .body("Error reading file chunk")
+                            }
+                        };
+                        if let Err(_) = f.write_all(&data) {
+                            return HttpResponse::InternalServerError()
+                                .body("Error writing file chunk");
+                        }
+                    }
+                }
+                _ => return HttpResponse::BadRequest().body("Unsupported field type"),
+            },
+            None => return HttpResponse::BadRequest().body("Missing content disposition"),
+        }
+    }
+    HttpResponse::Ok().body("File uploaded successfully")
 }
