@@ -2,7 +2,7 @@ use actix_files as fs;
 use actix_web::{web, App, HttpServer};
 use clap::Parser;
 mod database_handler;
-use database_handler::initialize_db;
+use database_handler::{initialize_db};
 mod orca_slicer_interface;
 use lazy_static::lazy_static;
 use orca_slicer_interface::initialize_orca_slicer_if;
