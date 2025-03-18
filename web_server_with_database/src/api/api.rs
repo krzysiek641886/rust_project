@@ -1,12 +1,13 @@
+use crate::database_handler;
 use actix_multipart::Multipart;
 use actix_web::{HttpResponse, Responder};
+use database_handler::{add_form_submission_to_db, read_orders_from_db, FormFields};
 use futures::StreamExt;
 use lazy_static::lazy_static;
+use serde::Serialize;
 use std::fs::File;
 use std::io::Write;
 use std::sync::Mutex;
-use crate::database_handler;
-use database_handler::{add_form_submission_to_db, FormFields};
 
 struct State {
     app_init_status: Mutex<bool>,
@@ -53,20 +54,23 @@ pub async fn form_submission_handler(mut payload: Multipart) -> impl Responder {
         match content_disposition.get_name() {
             Some(name) => match name {
                 "name" => {
-                    form_fields.name = Some(String::from_utf8_lossy(&field.next().await.unwrap().unwrap())
-                        .to_string());
+                    form_fields.name = Some(
+                        String::from_utf8_lossy(&field.next().await.unwrap().unwrap()).to_string(),
+                    );
                     println!("Received name");
                 }
                 "email" => {
-                    form_fields.email = Some(String::from_utf8_lossy(&field.next().await.unwrap().unwrap())
-                        .to_string());
+                    form_fields.email = Some(
+                        String::from_utf8_lossy(&field.next().await.unwrap().unwrap()).to_string(),
+                    );
                     println!("Received email");
                 }
                 "copies_nbr" => {
-                    form_fields.copies_nbr = String::from_utf8_lossy(&field.next().await.unwrap().unwrap())
-                        .to_string()
-                        .parse()
-                        .unwrap();
+                    form_fields.copies_nbr =
+                        String::from_utf8_lossy(&field.next().await.unwrap().unwrap())
+                            .to_string()
+                            .parse()
+                            .unwrap();
                     println!("Received copies_nbr");
                 }
                 "file" => {
@@ -105,4 +109,32 @@ pub async fn form_submission_handler(mut payload: Multipart) -> impl Responder {
     }
     add_form_submission_to_db(form_fields);
     HttpResponse::Ok().body("File uploaded successfully")
+}
+
+#[derive(Serialize)]
+struct Order {
+    name: String,
+    email: String,
+    copies_nbr: u32,
+    file_name: String,
+}
+
+pub async fn get_orders_handler() -> impl Responder {
+    match read_orders_from_db() {
+        Ok(orders) => {
+            let orders_json: Vec<Order> = orders
+                .into_iter()
+                .map(|order| Order {
+                    name: order.name.unwrap_or_default(),
+                    email: order.email.unwrap_or_default(),
+                    copies_nbr: order.copies_nbr,
+                    file_name: order.file_name.unwrap_or_default(),
+                })
+                .collect();
+            HttpResponse::Ok().json(orders_json)
+        }
+        Err(e) => {
+            HttpResponse::InternalServerError().body(format!("Failed to retrieve orders: {}", e))
+        }
+    }
 }

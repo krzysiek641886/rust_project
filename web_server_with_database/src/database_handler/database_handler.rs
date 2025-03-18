@@ -1,5 +1,5 @@
 use lazy_static::lazy_static;
-use rusqlite::Connection;
+use rusqlite::{params, Connection, Result};
 use std::sync::Mutex;
 struct State {
     db_name: Mutex<String>,
@@ -54,7 +54,12 @@ pub fn add_form_submission_to_db(form_fields: FormFields) -> bool {
         Some(file_name) => file_name,
         None => return false,
     };
-    write_submission_to_db(name.as_str(), email.as_str(), form_fields.copies_nbr.to_string().as_str() ,file_name.as_str());
+    write_submission_to_db(
+        name.as_str(),
+        email.as_str(),
+        form_fields.copies_nbr.to_string().as_str(),
+        file_name.as_str(),
+    );
 
     return true;
 }
@@ -70,6 +75,30 @@ fn write_submission_to_db(name: &str, email: &str, copes_nbr: &str, file_name: &
         &[&name, &email, copes_nbr, &file_name],
     )
     .is_ok()
+}
+
+pub fn read_orders_from_db() -> Result<Vec<FormFields>> {
+    let db_conn = DB_HANDLER_STATE.db_conn.lock().unwrap();
+    let conn = db_conn
+        .as_ref()
+        .expect("Database connection is not initialized");
+
+    let mut stmt = conn.prepare("SELECT name, email, copies_nbr, file_name FROM Orders")?;
+    let order_iter = stmt.query_map([], |row| {
+        Ok(FormFields {
+            name: Some(row.get(0)?),
+            email: Some(row.get(1)?),
+            copies_nbr: row.get(2)?,
+            file_name: Some(row.get(3)?),
+        })
+    })?;
+
+    let mut orders = Vec::new();
+    for order in order_iter {
+        orders.push(order?);
+    }
+
+    Ok(orders)
 }
 
 #[cfg(test)]
