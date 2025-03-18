@@ -8,7 +8,9 @@ use lazy_static::lazy_static;
 use orca_slicer_interface::initialize_orca_slicer_if;
 use std::sync::Mutex;
 mod api;
-use api::{app_init_status_handler, initialize_api_handler, form_submission_handler};
+use api::{
+    app_init_status_handler, form_submission_handler, get_orders_handler, initialize_api_handler,
+};
 
 /// Command-line arguments
 #[derive(Parser, Debug)]
@@ -57,10 +59,12 @@ async fn main() -> std::io::Result<()> {
     let args = Args::parse();
     initialize_modules_with_cmd_arguments(args);
 
+    println!("Starting server at http://127.0.0.1:8080");
     HttpServer::new(|| {
         App::new()
             .route("/api/backendstatus", web::get().to(app_init_status_handler))
             .route("/api/upload", web::post().to(form_submission_handler)) // Add API route for file upload
+            .route("/api/orders", web::get().to(get_orders_handler)) // Add API route for file upload
             // The index page has to be initialized after API endpoints
             .service(fs::Files::new("/", "./src/frontend").index_file("index.html"))
     })
