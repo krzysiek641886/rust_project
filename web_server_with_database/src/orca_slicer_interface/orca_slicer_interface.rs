@@ -1,9 +1,12 @@
-use crate::{
-    database_handler::FormFields, orca_slicer_interface::orca_slicer_cli::ping_orca_slicer,
-};
+/* IMPORTS FROM LIBRARIES */
 use lazy_static::lazy_static;
 use std::sync::Mutex;
 
+/* IMPORTS FROM OTHER MODULES */
+use crate::common_utils::global_types::{EvaluationResult, SubmittedOrderData};
+use crate::orca_slicer_interface::orca_slicer_cli::ping_orca_slicer;
+
+/* PRIVATE TYPES AND VARIABLES */
 struct State {
     ws_path: Mutex<String>,
     slicer_exec_path: Mutex<String>,
@@ -16,10 +19,11 @@ lazy_static! {
     };
 }
 
-pub struct EvaluationResult {
-    _price: f64,
-}
+/* PUBLIC TYPES AND VARIABLES */
 
+/* PRIVATE FUNCTIONS */
+
+/* PUBLIC FUNCTIONS */
 pub fn initialize_orca_slicer_if(ws_path: &str, orca_path: &str) {
     let mut ws_path_lock = SLICER_IF_STATE.ws_path.lock().unwrap();
     let mut slicer_exec_path_lock = SLICER_IF_STATE.slicer_exec_path.lock().unwrap();
@@ -32,10 +36,11 @@ pub fn initialize_orca_slicer_if(ws_path: &str, orca_path: &str) {
     }
 }
 
-pub fn get_orca_slicer_evaluation(_order: &FormFields) -> EvaluationResult {
+pub fn get_orca_slicer_evaluation(_order: &SubmittedOrderData) -> EvaluationResult {
     EvaluationResult { _price: 0.0 }
 }
 
+/* TESTS */
 #[cfg(test)]
 mod tests {
     use super::*;

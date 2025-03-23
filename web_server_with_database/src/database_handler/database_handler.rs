@@ -1,8 +1,12 @@
-use crate::orca_slicer_interface::EvaluationResult;
+/* IMPORTS FROM LIBRARIES */
 use lazy_static::lazy_static;
 use rusqlite::{Connection, Result};
 use std::sync::Mutex;
 
+/* IMPORTS FROM OTHER MODULES */
+use crate::common_utils::global_types::{EvaluationResult, SubmittedOrderData};
+
+/* PRIVATE TYPES AND VARIABLES */
 struct State {
     db_name: Mutex<String>,
     db_conn: Mutex<Option<Connection>>,
@@ -15,13 +19,11 @@ lazy_static! {
     };
 }
 
-pub struct FormFields {
-    pub name: Option<String>,
-    pub email: Option<String>,
-    pub copies_nbr: u32,
-    pub file_name: Option<String>,
-}
+/* PUBLIC TYPES AND VARIABLES */
 
+/* PRIVATE FUNCTIONS */
+
+/* PUBLIC FUNCTIONS */
 // Function to initialize the database connection
 pub fn initialize_db(db_name: &str) {
     let mut db_name_lock = DB_HANDLER_STATE.db_name.lock().unwrap();
@@ -40,7 +42,7 @@ pub fn initialize_db(db_name: &str) {
     *db_conn = Some(conn);
 }
 
-pub fn add_form_submission_to_db(form_fields: FormFields) -> bool {
+pub fn add_form_submission_to_db(form_fields: SubmittedOrderData) -> bool {
     let name = match form_fields.name {
         Some(name) => name,
         None => return false,
@@ -79,7 +81,7 @@ fn write_submission_to_db(name: &str, email: &str, copes_nbr: &str, file_name: &
     .is_ok()
 }
 
-pub fn read_orders_from_db() -> Result<Vec<FormFields>> {
+pub fn read_orders_from_db() -> Result<Vec<SubmittedOrderData>> {
     let db_conn = DB_HANDLER_STATE.db_conn.lock().unwrap();
     let conn = db_conn
         .as_ref()
@@ -87,7 +89,7 @@ pub fn read_orders_from_db() -> Result<Vec<FormFields>> {
 
     let mut stmt = conn.prepare("SELECT name, email, copies_nbr, file_name FROM Orders")?;
     let order_iter = stmt.query_map([], |row| {
-        Ok(FormFields {
+        Ok(SubmittedOrderData {
             name: Some(row.get(0)?),
             email: Some(row.get(1)?),
             copies_nbr: row.get(2)?,
@@ -103,7 +105,7 @@ pub fn read_orders_from_db() -> Result<Vec<FormFields>> {
     Ok(orders)
 }
 
-pub fn get_pending_order() -> Option<FormFields> {
+pub fn get_pending_order() -> Option<SubmittedOrderData> {
     // Placeholder for the function
     return None;
 }
@@ -112,10 +114,11 @@ pub fn add_evaluation_to_db(_slicer_evaluation_result: EvaluationResult) {
     // Placeholder for the function
 }
 
-pub fn remove_order_from_db(_order: FormFields) {
+pub fn remove_order_from_db(_order: SubmittedOrderData) {
     // Placeholder for the function
 }
 
+/* TESTS */
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -168,8 +171,8 @@ mod tests {
         // Initialize the database
         initialize_db(db_name);
 
-        // Create a FormFields instance
-        let form_fields = FormFields {
+        // Create a SubmittedOrderData instance
+        let form_fields = SubmittedOrderData {
             name: Some(String::from("John Doe")),
             email: Some(String::from("john.doe@example.com")),
             copies_nbr: 5,

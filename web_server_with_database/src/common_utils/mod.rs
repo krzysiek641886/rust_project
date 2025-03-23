@@ -1,5 +1,4 @@
 // PUBLIC MODULES
-pub mod api;
-pub use api::*;
+pub mod global_types;
 
 // PRIVATE MODULES
