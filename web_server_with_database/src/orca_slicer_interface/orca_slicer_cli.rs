@@ -1,6 +1,16 @@
+/* IMPORTS FROM LIBRARIES */
 use std::io::{self, Write};
 use std::process::Command;
 
+/* IMPORTS FROM OTHER MODULES */
+
+/* PRIVATE TYPES AND VARIABLES */
+
+/* PUBLIC TYPES AND VARIABLES */
+
+/* PRIVATE FUNCTIONS */
+
+/* PUBLIC FUNCTIONS */
 pub fn ping_orca_slicer(orca_path: &str) -> io::Result<()> {
     // Example command: ls the directory at orca_path
     let output = Command::new("ls").arg(orca_path).output()?;
@@ -16,3 +26,5 @@ pub fn ping_orca_slicer(orca_path: &str) -> io::Result<()> {
         ))
     }
 }
+
+/* TESTS */

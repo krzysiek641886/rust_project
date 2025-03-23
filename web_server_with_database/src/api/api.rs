@@ -1,5 +1,4 @@
-use crate::database_handler::{add_form_submission_to_db, read_orders_from_db, FormFields};
-use crate::orca_slicer_interface::EvaluationResult;
+/* IMPORTS FROM LIBRARIES */
 use actix_multipart::Multipart;
 use actix_web::{HttpResponse, Responder};
 use futures::StreamExt;
@@ -9,6 +8,11 @@ use std::fs::File;
 use std::io::Write;
 use std::sync::Mutex;
 
+/* IMPORTS FROM OTHER MODULES */
+use crate::common_utils::global_types::{EvaluationResult, SubmittedOrderData};
+use crate::database_handler::{add_form_submission_to_db, read_orders_from_db};
+
+/* PRIVATE TYPES AND VARIABLES */
 struct State {
     app_init_status: Mutex<bool>,
 }
@@ -19,6 +23,15 @@ lazy_static! {
     };
 }
 
+#[derive(Serialize)]
+struct Order {
+    name: String,
+    email: String,
+    copies_nbr: u32,
+    file_name: String,
+}
+
+/* PUBLIC TYPES AND VARIABLES */
 // Function to initialize the database connection
 pub fn initialize_api_handler(app_init_status: bool) {
     let mut app_init_status_lock = API_HANDLER_STATE.app_init_status.lock().unwrap();
@@ -36,7 +49,7 @@ pub async fn app_init_status_handler() -> impl Responder {
 }
 
 pub async fn form_submission_handler(mut payload: Multipart) -> impl Responder {
-    let mut form_fields = FormFields {
+    let mut form_fields = SubmittedOrderData {
         name: None,
         email: None,
         copies_nbr: 0,
@@ -115,14 +128,6 @@ pub fn send_result_to_client(_slicer_evaluation_result: &EvaluationResult) {
     // Send the evaluation result to the client
 }
 
-#[derive(Serialize)]
-struct Order {
-    name: String,
-    email: String,
-    copies_nbr: u32,
-    file_name: String,
-}
-
 pub async fn get_orders_handler() -> impl Responder {
     match read_orders_from_db() {
         Ok(orders) => {
@@ -142,3 +147,9 @@ pub async fn get_orders_handler() -> impl Responder {
         }
     }
 }
+
+/* PRIVATE FUNCTIONS */
+
+/* PUBLIC FUNCTIONS */
+
+/* TESTS */

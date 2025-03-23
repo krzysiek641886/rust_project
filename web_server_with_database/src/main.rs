@@ -1,23 +1,29 @@
+/* MODULES USED BY THE PROJECT */
+mod api;
+mod common_utils; // Add this line to declare the module
+mod database_handler;
+mod orca_slicer_interface;
+
+/* IMPORTS FROM LIBRARIES */
 use actix_files as fs;
 use actix_web::{web, App, HttpServer};
 use clap::Parser;
-mod database_handler;
-use database_handler::{
-    add_evaluation_to_db, get_pending_order, initialize_db, remove_order_from_db,
-};
 use lazy_static::lazy_static;
-mod orca_slicer_interface;
-use orca_slicer_interface::{
-    get_orca_slicer_evaluation, initialize_orca_slicer_if, EvaluationResult,
-};
 use std::sync::Mutex;
 use tokio::time::{interval, Duration};
-mod api;
+
+/* IMPORTS FROM OTHER MODULES */
 use api::{
     app_init_status_handler, form_submission_handler, get_orders_handler, initialize_api_handler,
     send_result_to_client,
 };
+use common_utils::global_types::EvaluationResult;
+use database_handler::{
+    add_evaluation_to_db, get_pending_order, initialize_db, remove_order_from_db,
+};
+use orca_slicer_interface::{get_orca_slicer_evaluation, initialize_orca_slicer_if};
 
+/* PRIVATE TYPES AND VARIABLES */
 /// Command-line arguments
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
@@ -51,6 +57,9 @@ lazy_static! {
     };
 }
 
+/* PUBLIC TYPES AND VARIABLES */
+
+/* PRIVATE FUNCTIONS */
 fn initialize_modules_with_cmd_arguments(args: Args) {
     // This consumes the args struct and initializes the global state. No other use of args is allowed after this point.
     initialize_db(&args.db_name);
@@ -101,3 +110,7 @@ async fn main() -> std::io::Result<()> {
     .run()
     .await
 }
+
+/* PUBLIC FUNCTIONS */
+
+/* TESTS */
