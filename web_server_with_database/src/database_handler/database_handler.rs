@@ -1,6 +1,8 @@
+use crate::orca_slicer_interface::EvaluationResult;
 use lazy_static::lazy_static;
 use rusqlite::{Connection, Result};
 use std::sync::Mutex;
+
 struct State {
     db_name: Mutex<String>,
     db_conn: Mutex<Option<Connection>>,
@@ -99,6 +101,19 @@ pub fn read_orders_from_db() -> Result<Vec<FormFields>> {
     }
 
     Ok(orders)
+}
+
+pub fn get_pending_order() -> Option<FormFields> {
+    // Placeholder for the function
+    return None;
+}
+
+pub fn add_evaluation_to_db(_slicer_evaluation_result: EvaluationResult) {
+    // Placeholder for the function
+}
+
+pub fn remove_order_from_db(_order: FormFields) {
+    // Placeholder for the function
 }
 
 #[cfg(test)]

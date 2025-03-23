@@ -1,6 +1,8 @@
+use crate::{
+    database_handler::FormFields, orca_slicer_interface::orca_slicer_cli::ping_orca_slicer,
+};
 use lazy_static::lazy_static;
 use std::sync::Mutex;
-use crate::orca_slicer_interface::orca_slicer_cli::ping_orca_slicer;
 
 struct State {
     ws_path: Mutex<String>,
@@ -14,6 +16,10 @@ lazy_static! {
     };
 }
 
+pub struct EvaluationResult {
+    _price: f64,
+}
+
 pub fn initialize_orca_slicer_if(ws_path: &str, orca_path: &str) {
     let mut ws_path_lock = SLICER_IF_STATE.ws_path.lock().unwrap();
     let mut slicer_exec_path_lock = SLICER_IF_STATE.slicer_exec_path.lock().unwrap();
@@ -24,6 +30,10 @@ pub fn initialize_orca_slicer_if(ws_path: &str, orca_path: &str) {
     if let Err(e) = ping_orca_slicer(orca_path) {
         panic!("Failed to ping Orca Slicer: {:?}", e);
     }
+}
+
+pub fn get_orca_slicer_evaluation(_order: &FormFields) -> EvaluationResult {
+    EvaluationResult { _price: 0.0 }
 }
 
 #[cfg(test)]

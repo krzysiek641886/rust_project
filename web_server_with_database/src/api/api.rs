@@ -1,7 +1,7 @@
-use crate::database_handler;
+use crate::database_handler::{add_form_submission_to_db, read_orders_from_db, FormFields};
+use crate::orca_slicer_interface::EvaluationResult;
 use actix_multipart::Multipart;
 use actix_web::{HttpResponse, Responder};
-use database_handler::{add_form_submission_to_db, read_orders_from_db, FormFields};
 use futures::StreamExt;
 use lazy_static::lazy_static;
 use serde::Serialize;
@@ -109,6 +109,10 @@ pub async fn form_submission_handler(mut payload: Multipart) -> impl Responder {
     }
     add_form_submission_to_db(form_fields);
     HttpResponse::Ok().body("File uploaded successfully")
+}
+
+pub fn send_result_to_client(_slicer_evaluation_result: &EvaluationResult) {
+    // Send the evaluation result to the client
 }
 
 #[derive(Serialize)]
