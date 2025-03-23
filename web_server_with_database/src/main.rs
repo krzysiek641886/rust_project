@@ -1,5 +1,6 @@
 use actix_files as fs;
 use actix_web::{web, App, HttpServer};
+mod common_utils; // Add this line to declare the module
 use clap::Parser;
 mod database_handler;
 use database_handler::{

@@ -1,4 +1,5 @@
-use crate::database_handler::{add_form_submission_to_db, read_orders_from_db, FormFields};
+use crate::common_utils::global_types::SubmittedOrderData;
+use crate::database_handler::{add_form_submission_to_db, read_orders_from_db};
 use crate::orca_slicer_interface::EvaluationResult;
 use actix_multipart::Multipart;
 use actix_web::{HttpResponse, Responder};
@@ -36,7 +37,7 @@ pub async fn app_init_status_handler() -> impl Responder {
 }
 
 pub async fn form_submission_handler(mut payload: Multipart) -> impl Responder {
-    let mut form_fields = FormFields {
+    let mut form_fields = SubmittedOrderData {
         name: None,
         email: None,
         copies_nbr: 0,

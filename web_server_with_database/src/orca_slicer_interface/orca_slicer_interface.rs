@@ -1,6 +1,5 @@
-use crate::{
-    database_handler::FormFields, orca_slicer_interface::orca_slicer_cli::ping_orca_slicer,
-};
+use crate::common_utils::global_types::SubmittedOrderData;
+use crate::orca_slicer_interface::orca_slicer_cli::ping_orca_slicer;
 use lazy_static::lazy_static;
 use std::sync::Mutex;
 
@@ -32,7 +31,7 @@ pub fn initialize_orca_slicer_if(ws_path: &str, orca_path: &str) {
     }
 }
 
-pub fn get_orca_slicer_evaluation(_order: &FormFields) -> EvaluationResult {
+pub fn get_orca_slicer_evaluation(_order: &SubmittedOrderData) -> EvaluationResult {
     EvaluationResult { _price: 0.0 }
 }
 
