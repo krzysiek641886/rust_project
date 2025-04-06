@@ -22,9 +22,29 @@ lazy_static! {
 /* PUBLIC TYPES AND VARIABLES */
 
 /* PRIVATE FUNCTIONS */
+fn write_submission_to_db(name: &str, email: &str, copes_nbr: &str, file_name: &str) -> bool {
+    let db_conn = DB_HANDLER_STATE.db_conn.lock().unwrap();
+    let conn = db_conn
+        .as_ref()
+        .expect("Database connection is not initialized");
+
+    conn.execute(
+        "INSERT INTO Orders (name, email, copies_nbr, file_name) VALUES (?1, ?2, ?3, ?4)",
+        &[&name, &email, copes_nbr, &file_name],
+    )
+    .is_ok()
+}
 
 /* PUBLIC FUNCTIONS */
-// Function to initialize the database connection
+
+/**
+ * @brief Initializes the database connection.
+ *
+ * This function sets up the database connection and creates the necessary tables
+ * if they do not already exist.
+ *
+ * @param db_name Name of the database file.
+ */
 pub fn initialize_db(db_name: &str) {
     let mut db_name_lock = DB_HANDLER_STATE.db_name.lock().unwrap();
     *db_name_lock = db_name.to_string();
@@ -42,6 +62,14 @@ pub fn initialize_db(db_name: &str) {
     *db_conn = Some(conn);
 }
 
+/**
+ * @brief Adds a form submission to the database.
+ *
+ * This function validates the form submission data and writes it to the database.
+ *
+ * @param form_fields Submitted order data.
+ * @return bool True if the submission was successfully added, false otherwise.
+ */
 pub fn add_form_submission_to_db(form_fields: SubmittedOrderData) -> bool {
     let name = match form_fields.name {
         Some(name) => name,
@@ -68,19 +96,15 @@ pub fn add_form_submission_to_db(form_fields: SubmittedOrderData) -> bool {
     return true;
 }
 
-fn write_submission_to_db(name: &str, email: &str, copes_nbr: &str, file_name: &str) -> bool {
-    let db_conn = DB_HANDLER_STATE.db_conn.lock().unwrap();
-    let conn = db_conn
-        .as_ref()
-        .expect("Database connection is not initialized");
-
-    conn.execute(
-        "INSERT INTO Orders (name, email, copies_nbr, file_name) VALUES (?1, ?2, ?3, ?4)",
-        &[&name, &email, copes_nbr, &file_name],
-    )
-    .is_ok()
-}
-
+/**
+ * @brief Reads all orders from the database.
+ *
+ * This function retrieves all orders stored in the database and returns them
+ * as a vector of `SubmittedOrderData` objects.
+ *
+ * @return Result<Vec<SubmittedOrderData>> A result containing a vector of orders
+ *         if successful, or an error if the operation fails.
+ */
 pub fn read_orders_from_db() -> Result<Vec<SubmittedOrderData>> {
     let db_conn = DB_HANDLER_STATE.db_conn.lock().unwrap();
     let conn = db_conn
@@ -105,15 +129,37 @@ pub fn read_orders_from_db() -> Result<Vec<SubmittedOrderData>> {
     Ok(orders)
 }
 
+/**
+ * @brief Retrieves a pending order from the database.
+ *
+ * This function returns a pending order if one exists. Currently, it is a placeholder.
+ *
+ * @return Option<SubmittedOrderData> A pending order or None if no orders are pending.
+ */
 pub fn get_pending_order() -> Option<SubmittedOrderData> {
     // Placeholder for the function
     return None;
 }
 
+/**
+ * @brief Adds an evaluation result to the database.
+ *
+ * This function stores the evaluation result of an order in the database.
+ * Currently, it is a placeholder.
+ *
+ * @param _slicer_evaluation_result Evaluation result to be added.
+ */
 pub fn add_evaluation_to_db(_slicer_evaluation_result: EvaluationResult) {
     // Placeholder for the function
 }
 
+/**
+ * @brief Removes an order from the database.
+ *
+ * This function deletes an order from the database. Currently, it is a placeholder.
+ *
+ * @param _order Order to be removed.
+ */
 pub fn remove_order_from_db(_order: SubmittedOrderData) {
     // Placeholder for the function
 }

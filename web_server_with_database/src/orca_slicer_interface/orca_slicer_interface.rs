@@ -24,6 +24,17 @@ lazy_static! {
 /* PRIVATE FUNCTIONS */
 
 /* PUBLIC FUNCTIONS */
+
+/**
+ * @brief Initializes the Orca Slicer interface.
+ * 
+ * This function sets up the Orca Slicer interface by updating the global state
+ * with the workspace path and slicer executable path. It also pings the Orca Slicer
+ * to ensure it is reachable.
+ * 
+ * @param ws_path Path to the workspace directory.
+ * @param orca_path Path to the Orca Slicer executable.
+ */
 pub fn initialize_orca_slicer_if(ws_path: &str, orca_path: &str) {
     let mut ws_path_lock = SLICER_IF_STATE.ws_path.lock().unwrap();
     let mut slicer_exec_path_lock = SLICER_IF_STATE.slicer_exec_path.lock().unwrap();
@@ -36,6 +47,15 @@ pub fn initialize_orca_slicer_if(ws_path: &str, orca_path: &str) {
     }
 }
 
+/**
+ * @brief Evaluates an order using the Orca Slicer.
+ * 
+ * This function takes a submitted order and returns an evaluation result.
+ * Currently, it returns a placeholder result.
+ * 
+ * @param _order Reference to the submitted order data.
+ * @return EvaluationResult The result of the evaluation.
+ */
 pub fn get_orca_slicer_evaluation(_order: &SubmittedOrderData) -> EvaluationResult {
     EvaluationResult { _price: 0.0 }
 }

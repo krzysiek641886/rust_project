@@ -24,13 +24,26 @@ lazy_static! {
 }
 
 /* PUBLIC TYPES AND VARIABLES */
-// Function to initialize the database connection
+/**
+ * @brief Initializes the API handler.
+ *
+ * This function sets the application initialization status in the global state.
+ *
+ * @param app_init_status Boolean indicating whether the application is initialized.
+ */
 pub fn initialize_api_handler(app_init_status: bool) {
     let mut app_init_status_lock = API_HANDLER_STATE.app_init_status.lock().unwrap();
     *app_init_status_lock = app_init_status;
 }
 
-// API handler function
+/**
+ * @brief Handles the application initialization status API endpoint.
+ *
+ * This function returns an HTTP response indicating whether the application
+ * was initialized successfully.
+ *
+ * @return impl Responder HTTP response with the initialization status.
+ */
 pub async fn app_init_status_handler() -> impl Responder {
     if *API_HANDLER_STATE.app_init_status.lock().unwrap() {
         HttpResponse::Ok().body("Application initialized successfully")
@@ -40,6 +53,15 @@ pub async fn app_init_status_handler() -> impl Responder {
     }
 }
 
+/**
+ * @brief Handles form submissions via multipart requests.
+ *
+ * This function processes form submissions, saves uploaded files, and stores
+ * the form data in the database.
+ *
+ * @param payload Multipart payload containing the form data and files.
+ * @return impl Responder HTTP response indicating the result of the operation.
+ */
 pub async fn form_submission_handler(mut payload: Multipart) -> impl Responder {
     let mut form_fields = SubmittedOrderData {
         name: None,
@@ -116,10 +138,24 @@ pub async fn form_submission_handler(mut payload: Multipart) -> impl Responder {
     HttpResponse::Ok().body("File uploaded successfully")
 }
 
+/**
+ * @brief Sends the evaluation result to the client.
+ *
+ * This function sends the evaluation result of an order to the client.
+ *
+ * @param _slicer_evaluation_result Reference to the evaluation result.
+ */
 pub fn send_result_to_client(_slicer_evaluation_result: &EvaluationResult) {
     // Send the evaluation result to the client
 }
 
+/**
+ * @brief Handles the API endpoint to retrieve orders.
+ *
+ * This function retrieves all orders from the database and returns them as a JSON response.
+ *
+ * @return impl Responder HTTP response containing the orders in JSON format.
+ */
 pub async fn get_orders_handler() -> impl Responder {
     #[derive(Serialize)]
     struct Order {
