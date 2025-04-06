@@ -1,4 +1,5 @@
 /* PUBLIC TYPES */
+#[derive(Clone, Debug)]
 pub struct SubmittedOrderData {
     pub name: Option<String>,
     pub email: Option<String>,

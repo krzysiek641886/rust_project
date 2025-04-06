@@ -4,7 +4,7 @@ use std::sync::Mutex;
 
 /* IMPORTS FROM OTHER MODULES */
 use crate::common_utils::global_types::{EvaluationResult, SubmittedOrderData};
-use crate::orca_slicer_interface::orca_slicer_cli::ping_orca_slicer;
+use crate::orca_slicer_interface::orca_slicer_cli as orca_cli;
 
 /* PRIVATE TYPES AND VARIABLES */
 struct State {
@@ -27,11 +27,11 @@ lazy_static! {
 
 /**
  * @brief Initializes the Orca Slicer interface.
- * 
+ *
  * This function sets up the Orca Slicer interface by updating the global state
  * with the workspace path and slicer executable path. It also pings the Orca Slicer
  * to ensure it is reachable.
- * 
+ *
  * @param ws_path Path to the workspace directory.
  * @param orca_path Path to the Orca Slicer executable.
  */
@@ -42,22 +42,24 @@ pub fn initialize_orca_slicer_if(ws_path: &str, orca_path: &str) {
     *ws_path_lock = ws_path.to_string();
     *slicer_exec_path_lock = orca_path.to_string();
 
-    if let Err(e) = ping_orca_slicer(orca_path) {
+    if let Err(e) = orca_cli::ping_orca_slicer(orca_path) {
         panic!("Failed to ping Orca Slicer: {:?}", e);
     }
 }
 
 /**
  * @brief Evaluates an order using the Orca Slicer.
- * 
+ *
  * This function takes a submitted order and returns an evaluation result.
  * Currently, it returns a placeholder result.
- * 
+ *
  * @param _order Reference to the submitted order data.
  * @return EvaluationResult The result of the evaluation.
  */
-pub fn get_orca_slicer_evaluation(_order: &SubmittedOrderData) -> EvaluationResult {
-    EvaluationResult { _price: 0.0 }
+pub fn get_orca_slicer_evaluation(order: &SubmittedOrderData) -> EvaluationResult {
+    let orca_path = &*SLICER_IF_STATE.slicer_exec_path.lock().unwrap();
+    let workspace_path = &*SLICER_IF_STATE.ws_path.lock().unwrap();
+    return orca_cli::get_orca_slicer_evaluation(order, orca_path, workspace_path);
 }
 
 /* TESTS */
