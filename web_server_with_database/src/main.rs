@@ -63,11 +63,11 @@ lazy_static! {
 
 /**
  * @brief Initializes modules with command-line arguments.
- * 
+ *
  * This function initializes the database, Orca Slicer interface, and API handler
  * using the provided command-line arguments. It also updates the global state
  * with the workspace path.
- * 
+ *
  * @param args Command-line arguments parsed into an Args struct.
  */
 fn initialize_modules_with_cmd_arguments(args: Args) {
@@ -81,11 +81,11 @@ fn initialize_modules_with_cmd_arguments(args: Args) {
 
 /**
  * @brief Processes orders periodically.
- * 
+ *
  * This asynchronous function checks for pending orders at regular intervals.
  * If a pending order is found, it evaluates the order using the Orca Slicer,
  * sends the result to the client, and updates the database.
- * 
+ *
  * @param interval_seconds Interval in seconds between order checks.
  */
 async fn process_orders_periodically(interval_seconds: u64) {
@@ -96,15 +96,20 @@ async fn process_orders_periodically(interval_seconds: u64) {
         println!("Checking for pending orders...");
         match get_pending_order() {
             Some(order) => {
+                println!("{:?}", order);
                 let slicer_evaluation_result: EvaluationResult = get_orca_slicer_evaluation(&order);
                 send_result_to_client(&slicer_evaluation_result);
                 add_evaluation_to_db(slicer_evaluation_result);
                 remove_order_from_db(order);
-            }
+            },
             None => {
-                interval.tick().await;
+                println!(
+                    "No order in the database. Scheduled next check in {} seconds",
+                    interval_seconds
+                );
             }
         }
+        interval.tick().await;
     }
 }
 
