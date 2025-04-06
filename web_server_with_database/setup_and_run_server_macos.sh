@@ -1,6 +1,8 @@
 #!/bin/bash
 
 orca_slicer_path="orca_slicer/build_x86_64/OrcaSlicer/OrcaSlicer.app/Contents/MacOS/OrcaSlicer"
+# Slicing command that works
+# prusa-slicer -g --load prusa_config.ini --output sliced.gcode '/Users/krzysztofmroz/Projects/rust_project/web_server_with_database/data_files/Main_plate_grey.stl'
 
 # Function to display the help menu
 show_help() {
