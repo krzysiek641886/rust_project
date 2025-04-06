@@ -23,14 +23,6 @@ lazy_static! {
     };
 }
 
-#[derive(Serialize)]
-struct Order {
-    name: String,
-    email: String,
-    copies_nbr: u32,
-    file_name: String,
-}
-
 /* PUBLIC TYPES AND VARIABLES */
 // Function to initialize the database connection
 pub fn initialize_api_handler(app_init_status: bool) {
@@ -129,6 +121,13 @@ pub fn send_result_to_client(_slicer_evaluation_result: &EvaluationResult) {
 }
 
 pub async fn get_orders_handler() -> impl Responder {
+    #[derive(Serialize)]
+    struct Order {
+        name: String,
+        email: String,
+        copies_nbr: u32,
+        file_name: String,
+    }
     match read_orders_from_db() {
         Ok(orders) => {
             let orders_json: Vec<Order> = orders
