@@ -137,7 +137,18 @@ pub fn read_orders_from_db() -> Result<Vec<SubmittedOrderData>> {
  * @return Option<SubmittedOrderData> A pending order or None if no orders are pending.
  */
 pub fn get_pending_order() -> Option<SubmittedOrderData> {
-    // Placeholder for the function
+    match read_orders_from_db() {
+        Ok(orders) => {
+            if orders.is_empty() {
+                return None;
+            }
+            let order = orders[0].clone();
+            return Some(order);
+        }
+        Err(_) => {
+            println!("Error reading orders from database");
+        }
+    }
     return None;
 }
 
