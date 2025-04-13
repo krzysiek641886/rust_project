@@ -17,14 +17,32 @@ show_help() {
 setup_project() {
     echo "Setting up the project..."
     mkdir -p data_files
-    # Add setup commands here
+    mkdir -p data_files/received_orders
+    mkdir -p data_files/processed_orders
+    if [ ! -f data_files/prusa_config.ini ]; then
+        touch data_files/prusa_config.ini
+    fi
+    brew install --cask prusaslicer
+    echo "Please add PrusaSlicer to your .zshrc or .bash file using following commands:"
+    echo "nano ~/.zshrc"
+    echo 'Add line: export PATH="/opt/PrusaSlicer:$PATH"'
+    echo 'Add line: alias prusa-slicer="/Applications/PrusaSlicer.app/Contents/MacOS/PrusaSlicer"'
+    echo 'Call "source ~/.zshrc"'
+}
+
+check_project_ready() {
+    if [ ! -d data_files ] || [ ! -d data_files/processed_orders ] || [ ! -d data_files/received_orders ] || [ ! -f data_files/prusa_config.ini ]; then
+        echo "Error: data_files directory structure not correctly configured"
+        echo "Run script with --setup flag to properly setup the project"
+        exit;
+    fi
 }
 
 # Function to run the server
 run_server() {
-    echo "Running the server..."
-    mkdir -p data_files
-    cargo run -- --ws-path ${PWD} --db-name wyceniarka_database.db --orca-slicer-path ${orca_slicer_path} --system macos
+    check_project_ready
+    echo "Starting the server..."
+    cargo run -- --ws-path ${PWD} --db-name data_files/price_evaulator_database.db --orca-slicer-path ${orca_slicer_path} --system macos
 }
 
 # Function to run the server
