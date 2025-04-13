@@ -2,7 +2,7 @@
 mod api;
 mod common_utils; // Add this line to declare the module
 mod database_handler;
-mod orca_slicer_interface;
+mod prusa_slicer_interface;
 
 /* IMPORTS FROM LIBRARIES */
 use actix_files as fs;
@@ -21,7 +21,7 @@ use common_utils::global_types::EvaluationResult;
 use database_handler::{
     add_evaluation_to_db, get_pending_order, initialize_db, remove_order_from_db,
 };
-use orca_slicer_interface::{get_orca_slicer_evaluation, initialize_orca_slicer_if};
+use prusa_slicer_interface::{get_prusa_slicer_evaluation, initialize_prusa_slicer_if};
 
 /* PRIVATE TYPES AND VARIABLES */
 /// Command-line arguments
@@ -40,11 +40,11 @@ struct Args {
     ws_path: String,
     #[clap(
         short = 'o',
-        long = "orca-slicer-path",
-        help = "Path to Orca Slicer executable"
+        long = "prusa-slicer-path",
+        help = "Path to Prusa Slicer executable"
     )]
-    orca_path: String,
-    #[clap(short = 's', long = "system", help = "Path to Orca Slicer executable")]
+    prusa_path: String,
+    #[clap(short = 's', long = "system", help = "Path to Prusa Slicer executable")]
     system: String,
 }
 
@@ -64,7 +64,7 @@ lazy_static! {
 /**
  * @brief Initializes modules with command-line arguments.
  *
- * This function initializes the database, Orca Slicer interface, and API handler
+ * This function initializes the database, Prusa Slicer interface, and API handler
  * using the provided command-line arguments. It also updates the global state
  * with the workspace path.
  *
@@ -73,7 +73,7 @@ lazy_static! {
 fn initialize_modules_with_cmd_arguments(args: Args) {
     // This consumes the args struct and initializes the global state. No other use of args is allowed after this point.
     initialize_db(&args.db_name);
-    initialize_orca_slicer_if(&args.system, &args.orca_path);
+    initialize_prusa_slicer_if(&args.system, &args.prusa_path);
     let mut ws_path_lock = MAIN_STATE.ws_path.lock().unwrap();
     *ws_path_lock = args.ws_path.to_string();
     initialize_api_handler(true);
@@ -83,7 +83,7 @@ fn initialize_modules_with_cmd_arguments(args: Args) {
  * @brief Processes orders periodically.
  *
  * This asynchronous function checks for pending orders at regular intervals.
- * If a pending order is found, it evaluates the order using the Orca Slicer,
+ * If a pending order is found, it evaluates the order using the Prusa Slicer,
  * sends the result to the client, and updates the database.
  *
  * @param interval_seconds Interval in seconds between order checks.
@@ -97,7 +97,7 @@ async fn process_orders_periodically(interval_seconds: u64) {
         match get_pending_order() {
             Some(order) => {
                 println!("{:?}", order);
-                let slicer_evaluation_result: EvaluationResult = get_orca_slicer_evaluation(&order);
+                let slicer_evaluation_result: EvaluationResult = get_prusa_slicer_evaluation(&order);
                 send_result_to_client(&slicer_evaluation_result);
                 add_evaluation_to_db(slicer_evaluation_result);
                 remove_order_from_db(order);
