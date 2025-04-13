@@ -1,8 +1,6 @@
 #!/bin/bash
 
-orca_slicer_path="orca_slicer/build_x86_64/OrcaSlicer/OrcaSlicer.app/Contents/MacOS/OrcaSlicer"
-# Slicing command that works
-# prusa-slicer -g --load prusa_config.ini --output sliced.gcode '/Users/krzysztofmroz/Projects/rust_project/web_server_with_database/data_files/Main_plate_grey.stl'
+prusa_slicer_path="/Applications/PrusaSlicer.app/Contents/MacOS/PrusaSlicer"
 
 # Function to display the help menu
 show_help() {
@@ -42,7 +40,7 @@ check_project_ready() {
 run_server() {
     check_project_ready
     echo "Starting the server..."
-    cargo run -- --ws-path ${PWD} --db-name data_files/price_evaulator_database.db --orca-slicer-path ${orca_slicer_path} --system macos
+    cargo run -- --ws-path ${PWD} --db-name data_files/price_evaulator_database.db --prusa-slicer-path ${prusa_slicer_path} --system macos
 }
 
 # Function to run the server
