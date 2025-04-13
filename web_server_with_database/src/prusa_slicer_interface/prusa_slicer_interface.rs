@@ -4,20 +4,22 @@ use std::sync::Mutex;
 
 /* IMPORTS FROM OTHER MODULES */
 use crate::common_utils::global_types::{EvaluationResult, SubmittedOrderData};
-use crate::prusa_slicer_interface::prusa_slicer_cli as prusa_cli;
+use crate::prusa_slicer_interface::prusa_slicer_cli::PrusaSlicerCli;
+use crate::common_utils::global_traits::SlicerInterfaceImpl;
 
 /* PRIVATE TYPES AND VARIABLES */
 struct State {
-    ws_path: Mutex<String>,
-    slicer_exec_path: Mutex<String>,
+    ws_path: Mutex<Option<String>>,
+    slicer_exec_path: Mutex<Option<String>>,
+    slicer_interface: Mutex<Box<SlicerInterfaceImpl>>,
 }
 
-lazy_static! {
-    static ref SLICER_IF_STATE: State = State {
-        ws_path: Mutex::new(String::from("")),
-        slicer_exec_path: Mutex::new(String::from("")),
-    };
-}
+
+static SLICER_IF_STATE: State = State {
+    ws_path: Mutex::new(None),
+    slicer_exec_path: Mutex::new(None),
+    slicer_interface: Mutex::new(Box::new(None)),
+};
 
 /* PUBLIC TYPES AND VARIABLES */
 
@@ -38,11 +40,12 @@ lazy_static! {
 pub fn initialize_prusa_slicer_if(ws_path: &str, prusa_path: &str) {
     let mut ws_path_lock = SLICER_IF_STATE.ws_path.lock().unwrap();
     let mut slicer_exec_path_lock = SLICER_IF_STATE.slicer_exec_path.lock().unwrap();
+    let slicer_interface_lock = SLICER_IF_STATE.slicer_interface.lock().unwrap();
 
     *ws_path_lock = ws_path.to_string();
     *slicer_exec_path_lock = prusa_path.to_string();
 
-    if let Err(e) = prusa_cli::ping_prusa_slicer(prusa_path) {
+    if let Err(e) = *slicer_interface_lock.ping(prusa_path) {
         panic!("Failed to ping Prusa Slicer: {:?}", e);
     }
 }
@@ -59,11 +62,10 @@ pub fn initialize_prusa_slicer_if(ws_path: &str, prusa_path: &str) {
 pub fn get_prusa_slicer_evaluation(order: &SubmittedOrderData) -> EvaluationResult {
     let prusa_path = &*SLICER_IF_STATE.slicer_exec_path.lock().unwrap();
     let workspace_path = &*SLICER_IF_STATE.ws_path.lock().unwrap();
-    return prusa_cli::get_prusa_slicer_evaluation(order, prusa_path, workspace_path);
+    let slicer_interface_lock = SLICER_IF_STATE.slicer_interface.lock().unwrap();
+    return *slicer_interface_lock.evaluate(order, prusa_path, workspace_path);
 }
 
-/* TESTS */
-#[cfg(test)]
 mod tests {
     // use super::*;
 
