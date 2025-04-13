@@ -21,7 +21,7 @@ use crate::common_utils::global_types::{EvaluationResult, SubmittedOrderData};
  * @return io::Result<()> Result indicating success or failure of the operation.
  */
 pub fn ping_prusa_slicer(prusa_path: &str) -> io::Result<()> {
-    let output = Command::new("prusa-slicer").arg("--help").output()?;
+    let output = Command::new(prusa_path).arg("--help").output()?;
     if output.status.success() {
         Ok(())
     } else {
@@ -50,7 +50,7 @@ pub fn get_prusa_slicer_evaluation(
     _slicer_path: &str,
     _ws_path: &str,
 ) -> EvaluationResult {
-    // prusa-slicer -g --load prusa_config.ini --output sliced.gcode '/Users/krzysztofmroz/Projects/rust_project/web_server_with_database/data_files/Main_plate_grey.stl'
+    // prusa-slicer -g --load prusa_config.ini --output sliced.gcode '/Users/username/Projects/rust_project/web_server_with_database/data_files/received_orders/stl_file.stl'
     EvaluationResult { _price: 0.0 }
 }
 

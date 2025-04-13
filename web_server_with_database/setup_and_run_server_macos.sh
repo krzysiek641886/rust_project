@@ -21,11 +21,8 @@ setup_project() {
         touch data_files/prusa_config.ini
     fi
     brew install --cask prusaslicer
-    echo "Please add PrusaSlicer to your .zshrc or .bash file using following commands:"
-    echo "nano ~/.zshrc"
-    echo 'Add line: export PATH="/opt/PrusaSlicer:$PATH"'
-    echo 'Add line: alias prusa-slicer="/Applications/PrusaSlicer.app/Contents/MacOS/PrusaSlicer"'
-    echo 'Call "source ~/.zshrc"'
+    echo "Please add a correct config file in data_files/prusa_config.ini"
+
 }
 
 check_project_ready() {
