@@ -24,25 +24,22 @@ lazy_static! {
 }
 
 /* PRIVATE FUNCTIONS */
-fn setup_module_state(
+fn setup_paths_in_state(
     ws_path: &str,
     prusa_path: &str,
 ) -> io::Result<()> {
     let mut ws_path_lock = SLICER_IF_STATE.ws_path.lock().unwrap();
     let mut slicer_exec_path_lock = SLICER_IF_STATE.slicer_exec_path.lock().unwrap();
-
     *ws_path_lock = Some(ws_path.to_string());
     *slicer_exec_path_lock = Some(prusa_path.to_string());
-
     Ok(())
 }
 
 /* PUBLIC FUNCTIONS */
 pub fn initialize_prusa_slicer_if(ws_path: &str, prusa_path: &str) {
-    if let Err(e) = setup_module_state(ws_path, prusa_path) {
+    if let Err(e) = setup_paths_in_state(ws_path, prusa_path) {
         panic!("Failed to setup Prusa Slicer Interface: {:?}", e);
     }
-
     let slicer_interface_lock = SLICER_IF_STATE.slicer_interface.lock().unwrap();
     if let Err(e) = slicer_interface_lock.ping(prusa_path) {
         panic!("Failed to ping Prusa Slicer: {:?}", e);
@@ -66,10 +63,9 @@ mod tests {
     use crate::prusa_slicer_interface::prusa_slicer_mock::PrusaSlicerMock;
 
     #[test]
-    fn test_initialize_prusa_slicer_if() {
-        println!("FOO begin");
-
-
+    fn test_initialize_prusa_slicer_if_successfull_ping() {
+        // Verify that initialize_prusa_slicer_if doesn't panic
+        // and that the state is set correctly
         {
             let mut slicer_interface_lock = SLICER_IF_STATE.slicer_interface.lock().unwrap();
             let mocked_interface = Box::new(PrusaSlicerMock {
@@ -78,15 +74,28 @@ mod tests {
             });
             *slicer_interface_lock = mocked_interface;
         }
-
         let ws_path = "foobar";
         let prusa_path = "foobar";
-        assert!(setup_module_state(ws_path, prusa_path).is_ok());
-
+        initialize_prusa_slicer_if(ws_path, prusa_path);
+        let ws_path_lock = SLICER_IF_STATE.ws_path.lock().unwrap();
+        let slicer_exec_path_lock = SLICER_IF_STATE.slicer_exec_path.lock().unwrap();
+        assert_eq!(*ws_path_lock, Some(ws_path.to_string()));
+        assert_eq!(*slicer_exec_path_lock, Some(prusa_path.to_string()));
+    }
+    
+    #[test]
+    #[should_panic(expected = "Failed to ping Prusa Slicer")]
+    fn test_initialize_prusa_slicer_if_failed_ping() {
         {
-            let slicer_interface_lock = SLICER_IF_STATE.slicer_interface.lock().unwrap();
-            assert!(slicer_interface_lock.ping(prusa_path).is_ok());
+            let mut slicer_interface_lock = SLICER_IF_STATE.slicer_interface.lock().unwrap();
+            let mocked_interface = Box::new(PrusaSlicerMock {
+                price_to_return: 42.0,
+                ping_result: false,
+            });
+            *slicer_interface_lock = mocked_interface;
         }
-        println!("FOO1");
+        let ws_path = "foobar";
+        let prusa_path = "foobar";
+        initialize_prusa_slicer_if(ws_path, prusa_path);
     }
 }
