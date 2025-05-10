@@ -73,7 +73,8 @@ lazy_static! {
 fn initialize_modules_with_cmd_arguments(args: Args) {
     // This consumes the args struct and initializes the global state. No other use of args is allowed after this point.
     initialize_db(&args.db_name);
-    initialize_prusa_slicer_if(&args.system, &args.prusa_path);
+    initialize_prusa_slicer_if(&args.system, &args.prusa_path)
+        .expect("Failed to initialize Prusa Slicer interface");
     let mut ws_path_lock = MAIN_STATE.ws_path.lock().unwrap();
     *ws_path_lock = args.ws_path.to_string();
     initialize_api_handler(true);
@@ -97,11 +98,12 @@ async fn process_orders_periodically(interval_seconds: u64) {
         match get_pending_order() {
             Some(order) => {
                 println!("{:?}", order);
-                let slicer_evaluation_result: EvaluationResult = get_prusa_slicer_evaluation(&order);
+                let slicer_evaluation_result: EvaluationResult =
+                    get_prusa_slicer_evaluation(&order);
                 send_result_to_client(&slicer_evaluation_result);
                 add_evaluation_to_db(slicer_evaluation_result);
                 remove_order_from_db(order);
-            },
+            }
             None => {
                 println!(
                     "No order in the database. Scheduled next check in {} seconds",
