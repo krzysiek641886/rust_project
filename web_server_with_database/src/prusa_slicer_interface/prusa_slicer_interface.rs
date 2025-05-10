@@ -67,28 +67,22 @@ mod tests {
     use crate::prusa_slicer_interface::prusa_slicer_mock::PrusaSlicerMock;
 
     /// Helper function to reset the global state
-    fn reset_slicer_if_state() {
+    fn reset_state_and_setup_mocked_interface(price_to_return: f64, ping_result: bool) {
         let mut ws_path_lock = SLICER_IF_STATE.ws_path.lock().unwrap();
         let mut slicer_exec_path_lock = SLICER_IF_STATE.slicer_exec_path.lock().unwrap();
         let mut slicer_interface_lock = SLICER_IF_STATE.slicer_interface.lock().unwrap();
 
         *ws_path_lock = None;
         *slicer_exec_path_lock = None;
-        *slicer_interface_lock = Box::new(PrusaSlicerCli {});
+        *slicer_interface_lock = Box::new(PrusaSlicerMock {
+            price_to_return,
+            ping_result,
+        });
     }
 
     #[test]
     fn test_initialize_prusa_slicer_if_successfull_ping() {
-        reset_slicer_if_state(); // Reset state before the test
-
-        {
-            let mut slicer_interface_lock = SLICER_IF_STATE.slicer_interface.lock().unwrap();
-            let mocked_interface = Box::new(PrusaSlicerMock {
-                price_to_return: 42.0,
-                ping_result: true,
-            });
-            *slicer_interface_lock = mocked_interface;
-        }
+        reset_state_and_setup_mocked_interface(42.0, true); // Reset state before the test
 
         let ws_path = "foobar";
         let prusa_path = "foobar";
@@ -113,19 +107,29 @@ mod tests {
 
     #[test]
     fn test_initialize_prusa_slicer_if_failed_ping() {
-        reset_slicer_if_state(); // Reset state before the test
-
-        {
-            let mut slicer_interface_lock = SLICER_IF_STATE.slicer_interface.lock().unwrap();
-            let mocked_interface = Box::new(PrusaSlicerMock {
-                price_to_return: 42.0,
-                ping_result: false,
-            });
-            *slicer_interface_lock = mocked_interface;
-        }
+        reset_state_and_setup_mocked_interface(42.0, false); // Reset state before the test
 
         let ws_path = "foobar";
         let prusa_path = "foobar";
         assert!(initialize_prusa_slicer_if(ws_path, prusa_path).is_err());
+    }
+
+    #[test]
+    fn test_get_prusa_slicer_evaluation_success() {
+        reset_state_and_setup_mocked_interface(42.0, true); // Reset state before the test
+
+        let ws_path = "workspace_path";
+        let prusa_path = "prusa_path";
+        initialize_prusa_slicer_if(ws_path, prusa_path).unwrap();
+
+        let order = SubmittedOrderData {
+            name: Some("John Doe".to_string()),
+            email: Some("john.doe@example.com".to_string()),
+            copies_nbr: 5,
+            file_name: Some("file.stl".to_string()),
+        };
+
+        let result = get_prusa_slicer_evaluation(&order);
+        assert_eq!(result._price, 42.0, "Evaluation result price is incorrect");
     }
 }
