@@ -46,9 +46,10 @@ pub fn initialize_db(db_name: &str) {
  * @param form_fields Submitted order data.
  * @return bool True if the submission was successfully added, false otherwise.
  */
-pub fn add_form_submission_to_db(form_fields: SubmittedOrderData) -> bool {
+pub fn add_form_submission_to_db(form_fields: &SubmittedOrderData) -> bool {
     let database_handler_impl = DB_HANDLER_STATE.db_impl.lock().unwrap();
-    match database_handler_impl.add_form_submission_to_db(form_fields)
+    let fields_cpy = form_fields.clone();
+    match database_handler_impl.add_form_submission_to_db(fields_cpy)
     {
         Ok(_) => return true,
         Err(_) => return false,
@@ -131,7 +132,7 @@ use crate::database_handler::database_mock::DatabaseMockImpl;
             copies_nbr: 5,
             file_name: Some("file.stl".to_string()),
         };
-        assert!(add_form_submission_to_db(order) == true);
+        assert!(add_form_submission_to_db(&order) == true);
     }
 
 }

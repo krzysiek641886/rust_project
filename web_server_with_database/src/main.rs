@@ -10,18 +10,13 @@ use actix_web::{web, App, HttpServer};
 use clap::Parser;
 use lazy_static::lazy_static;
 use std::sync::Mutex;
-use tokio::time::{interval, Duration};
 
 /* IMPORTS FROM OTHER MODULES */
 use api::{
-    app_init_status_handler, form_submission_handler, get_orders_handler, initialize_api_handler,
-    send_result_to_client,
+    app_init_status_handler, form_submission_handler, get_orders_handler, initialize_api_handler, eval_result_websocket_handler,
 };
-use common_utils::global_types::EvaluationResult;
-use database_handler::{
-    add_evaluation_to_db, get_pending_order, initialize_db, remove_order_from_db,
-};
-use prusa_slicer_interface::{get_prusa_slicer_evaluation, initialize_prusa_slicer_if};
+use database_handler::initialize_db;
+use prusa_slicer_interface::initialize_prusa_slicer_if;
 
 /* PRIVATE TYPES AND VARIABLES */
 /// Command-line arguments
@@ -80,48 +75,10 @@ fn initialize_modules_with_cmd_arguments(args: Args) {
     initialize_api_handler(true);
 }
 
-/**
- * @brief Processes orders periodically.
- *
- * This asynchronous function checks for pending orders at regular intervals.
- * If a pending order is found, it evaluates the order using the Prusa Slicer,
- * sends the result to the client, and updates the database.
- *
- * @param interval_seconds Interval in seconds between order checks.
- */
-async fn process_orders_periodically(interval_seconds: u64) {
-    let interval_duration = Duration::from_secs(interval_seconds); // Check every 60 seconds
-    let mut interval: tokio::time::Interval = interval(interval_duration);
-
-    loop {
-        println!("Checking for pending orders...");
-        match get_pending_order() {
-            Some(order) => {
-                println!("{:?}", order);
-                let slicer_evaluation_result: EvaluationResult =
-                    get_prusa_slicer_evaluation(&order);
-                send_result_to_client(&slicer_evaluation_result);
-                add_evaluation_to_db(slicer_evaluation_result);
-                remove_order_from_db(order);
-            }
-            None => {
-                println!(
-                    "No order in the database. Scheduled next check in {} seconds",
-                    interval_seconds
-                );
-            }
-        }
-        interval.tick().await;
-    }
-}
-
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     let args = Args::parse();
     initialize_modules_with_cmd_arguments(args);
-
-    // Spawn the background task for processing orders
-    tokio::spawn(process_orders_periodically(60));
 
     println!("Starting server at http://127.0.0.1:8080");
     HttpServer::new(|| {
@@ -129,6 +86,7 @@ async fn main() -> std::io::Result<()> {
             .route("/api/backendstatus", web::get().to(app_init_status_handler))
             .route("/api/upload", web::post().to(form_submission_handler)) // Add API route for file upload
             .route("/api/orders", web::get().to(get_orders_handler)) // Add API route for file upload
+            .route("/api/web_socket_results", web::get().to(eval_result_websocket_handler)) // Add WebSocket route
             // The index page has to be initialized after API endpoints
             .service(fs::Files::new("/", "./src/frontend").index_file("index.html"))
     })

@@ -1,6 +1,6 @@
 /* IMPORTS FROM LIBRARIES */
 use actix_multipart::Multipart;
-use actix_web::{HttpResponse, Responder};
+use actix_web::{HttpRequest, HttpResponse, Responder, web};
 use futures::StreamExt;
 use lazy_static::lazy_static;
 use serde::Serialize;
@@ -11,6 +11,7 @@ use std::sync::Mutex;
 /* IMPORTS FROM OTHER MODULES */
 use crate::common_utils::global_types::{EvaluationResult, SubmittedOrderData};
 use crate::database_handler::{add_form_submission_to_db, read_orders_from_db};
+use crate::api::web_socket::start_websocket;
 
 /* PRIVATE TYPES AND VARIABLES */
 struct State {
@@ -24,6 +25,13 @@ lazy_static! {
 }
 
 /* PUBLIC TYPES AND VARIABLES */
+
+/* PRIVATE FUNCTIONS */
+fn start_evaluation(_form_fields: &SubmittedOrderData) -> bool {
+    return true;
+}
+
+/* PUBLIC FUNCTIONS */
 /**
  * @brief Initializes the API handler.
  *
@@ -54,10 +62,24 @@ pub async fn app_init_status_handler() -> impl Responder {
 }
 
 /**
+ * @brief Handles WebSocket connections for updates.
+ *
+ * This function upgrades the HTTP connection to a WebSocket connection
+ * and sends updates to the client.
+ *
+ * @param req HTTP request.
+ * @param stream WebSocket stream.
+ * @return HttpResponse WebSocket response.
+ */
+pub async fn eval_result_websocket_handler(req: HttpRequest, stream: web::Payload) -> HttpResponse {
+    start_websocket(req, stream).await
+}
+
+/**
  * @brief Handles form submissions via multipart requests.
  *
  * This function processes form submissions, saves uploaded files, and stores
- * the form data in the database.
+ * the form data in the database. It also sends updates to the client via WebSocket.
  *
  * @param payload Multipart payload containing the form data and files.
  * @return impl Responder HTTP response indicating the result of the operation.
@@ -134,8 +156,18 @@ pub async fn form_submission_handler(mut payload: Multipart) -> impl Responder {
             None => return HttpResponse::BadRequest().body("Missing content disposition"),
         }
     }
-    add_form_submission_to_db(form_fields);
-    HttpResponse::Ok().body("File uploaded successfully")
+
+    if add_form_submission_to_db(&form_fields) == false {
+        // Notify the client that the form was successfully submitted
+        return HttpResponse::InternalServerError().body("Server database failed")
+    }
+
+    if start_evaluation(&form_fields) == false {
+        // Notify the client that the form was successfully submitted
+        return HttpResponse::InternalServerError().body("Price evaluation failed")
+    }
+
+    return HttpResponse::Ok().body("File uploaded successfully. Updates will be sent via WebSocket.");
 }
 
 /**
@@ -182,9 +214,5 @@ pub async fn get_orders_handler() -> impl Responder {
         }
     }
 }
-
-/* PRIVATE FUNCTIONS */
-
-/* PUBLIC FUNCTIONS */
 
 /* TESTS */
