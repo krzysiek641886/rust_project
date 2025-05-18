@@ -7,8 +7,7 @@ use crate::common_utils::global_types::SubmittedOrderData;
 
 /* PRIVATE TYPES AND VARIABLES */
 /* PUBLIC TYPES AND VARIABLES */
-pub struct DatabaseMockImpl {
-}
+pub struct DatabaseMockImpl {}
 
 /* PRIVATE FUNCTIONS */
 
@@ -25,9 +24,5 @@ impl DatabaseInterfaceImpl for DatabaseMockImpl {
     fn read_orders_from_db(&self) -> io::Result<Vec<SubmittedOrderData>> {
         let orders = Vec::new();
         return Ok(orders);
-    }
-
-    fn get_pending_order(&self) -> Option<SubmittedOrderData> {
-        return None;
     }
 }

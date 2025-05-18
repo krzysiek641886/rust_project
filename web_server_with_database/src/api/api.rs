@@ -1,6 +1,6 @@
 /* IMPORTS FROM LIBRARIES */
 use actix_multipart::Multipart;
-use actix_web::{HttpRequest, HttpResponse, Responder, web};
+use actix_web::{web, HttpRequest, HttpResponse, Responder};
 use futures::StreamExt;
 use lazy_static::lazy_static;
 use serde::Serialize;
@@ -9,9 +9,12 @@ use std::io::Write;
 use std::sync::Mutex;
 
 /* IMPORTS FROM OTHER MODULES */
-use crate::common_utils::global_types::{EvaluationResult, SubmittedOrderData};
-use crate::database_handler::{add_form_submission_to_db, read_orders_from_db};
 use crate::api::web_socket::start_websocket;
+use crate::common_utils::global_types::{EvaluationResult, SubmittedOrderData};
+use crate::database_handler::{
+    add_evaluation_to_db, add_form_submission_to_db, read_orders_from_db, remove_order_from_db,
+};
+use crate::prusa_slicer_interface::get_prusa_slicer_evaluation;
 
 /* PRIVATE TYPES AND VARIABLES */
 struct State {
@@ -27,7 +30,20 @@ lazy_static! {
 /* PUBLIC TYPES AND VARIABLES */
 
 /* PRIVATE FUNCTIONS */
-fn start_evaluation(_form_fields: &SubmittedOrderData) -> bool {
+fn start_evaluation(form_fields: &SubmittedOrderData) -> bool {
+    std::thread::spawn({
+        let received_order_cpy = form_fields.clone();
+        move || {
+            println!(
+                "Background evaluation started for: {:?}",
+                received_order_cpy
+            );
+            let eval_result = get_prusa_slicer_evaluation(&received_order_cpy);
+            add_evaluation_to_db(&eval_result);
+            remove_order_from_db(received_order_cpy);
+            send_result_to_client(eval_result);
+        }
+    });
     return true;
 }
 
@@ -159,15 +175,16 @@ pub async fn form_submission_handler(mut payload: Multipart) -> impl Responder {
 
     if add_form_submission_to_db(&form_fields) == false {
         // Notify the client that the form was successfully submitted
-        return HttpResponse::InternalServerError().body("Server database failed")
+        return HttpResponse::InternalServerError().body("Server database failed");
     }
 
     if start_evaluation(&form_fields) == false {
         // Notify the client that the form was successfully submitted
-        return HttpResponse::InternalServerError().body("Price evaluation failed")
+        return HttpResponse::InternalServerError().body("Price evaluation failed");
     }
 
-    return HttpResponse::Ok().body("File uploaded successfully. Updates will be sent via WebSocket.");
+    return HttpResponse::Ok()
+        .body("File uploaded successfully. Updates will be sent via WebSocket.");
 }
 
 /**
@@ -177,8 +194,11 @@ pub async fn form_submission_handler(mut payload: Multipart) -> impl Responder {
  *
  * @param _slicer_evaluation_result Reference to the evaluation result.
  */
-pub fn send_result_to_client(_slicer_evaluation_result: &EvaluationResult) {
-    // Send the evaluation result to the client
+pub fn send_result_to_client(slicer_evaluation_result: EvaluationResult) {
+    println!(
+        "Send the evaluation result to the client. To be implemented. \n{:}",
+        slicer_evaluation_result._price
+    );
 }
 
 /**
