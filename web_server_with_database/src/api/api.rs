@@ -9,7 +9,8 @@ use std::io::Write;
 use std::sync::Mutex;
 
 /* IMPORTS FROM OTHER MODULES */
-use crate::api::web_socket::start_websocket;
+use crate::api::web_socket_impl::PriceEvaluationWebSocketImpl;
+use crate::common_utils::global_traits::WebSocketInterfaceImpl;
 use crate::common_utils::global_types::{EvaluationResult, SubmittedOrderData};
 use crate::database_handler::{
     add_evaluation_to_db, add_form_submission_to_db, read_orders_from_db, remove_order_from_db,
@@ -19,11 +20,13 @@ use crate::prusa_slicer_interface::get_prusa_slicer_evaluation;
 /* PRIVATE TYPES AND VARIABLES */
 struct State {
     app_init_status: Mutex<bool>,
+    websocket_session: Mutex<PriceEvaluationWebSocketImpl>,
 }
 
 lazy_static! {
     static ref API_HANDLER_STATE: State = State {
         app_init_status: Mutex::new(false),
+        websocket_session: Mutex::new(PriceEvaluationWebSocketImpl {}),
     };
 }
 
@@ -45,6 +48,19 @@ fn start_evaluation(form_fields: &SubmittedOrderData) -> bool {
         }
     });
     return true;
+}
+
+/**
+ * @brief Sends the evaluation result to the client.
+ *
+ * This function sends the evaluation result of an order to the client.
+ *
+ * @param _slicer_evaluation_result Reference to the evaluation result.
+ */
+fn send_result_to_client(slicer_evaluation_result: EvaluationResult) {
+    println!("Send the evaluation result to the client: {:?}", slicer_evaluation_result._price);
+    let websocket_session = API_HANDLER_STATE.websocket_session.lock().unwrap();
+    websocket_session.send_result_to_websocket(slicer_evaluation_result);
 }
 
 /* PUBLIC FUNCTIONS */
@@ -88,7 +104,11 @@ pub async fn app_init_status_handler() -> impl Responder {
  * @return HttpResponse WebSocket response.
  */
 pub async fn eval_result_websocket_handler(req: HttpRequest, stream: web::Payload) -> HttpResponse {
-    start_websocket(req, stream).await
+    println!("eval_result_websocket_handler");
+    let websocket_session = API_HANDLER_STATE.websocket_session.lock().unwrap();
+    websocket_session
+        .start_web_socket_session(req, stream)
+        .await
 }
 
 /**
@@ -185,20 +205,6 @@ pub async fn form_submission_handler(mut payload: Multipart) -> impl Responder {
 
     return HttpResponse::Ok()
         .body("File uploaded successfully. Updates will be sent via WebSocket.");
-}
-
-/**
- * @brief Sends the evaluation result to the client.
- *
- * This function sends the evaluation result of an order to the client.
- *
- * @param _slicer_evaluation_result Reference to the evaluation result.
- */
-pub fn send_result_to_client(slicer_evaluation_result: EvaluationResult) {
-    println!(
-        "Send the evaluation result to the client. To be implemented. \n{:}",
-        slicer_evaluation_result._price
-    );
 }
 
 /**

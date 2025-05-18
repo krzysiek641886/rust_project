@@ -3,4 +3,4 @@ pub mod api;
 pub use api::*;
 
 // PRIVATE MODULES
-mod web_socket;
+mod web_socket_impl;

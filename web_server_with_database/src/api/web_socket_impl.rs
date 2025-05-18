@@ -1,10 +1,19 @@
+/* IMPORTS FROM LIBRARIES */
 use actix::{Actor, StreamHandler};
-use actix_web::{HttpRequest, HttpResponse, web};
+use actix_web::{web, HttpRequest, HttpResponse};
 use actix_web_actors::ws;
 
-// WebSocket session struct
-pub struct WebSocketSession;
+/* IMPORTS FROM OTHER MODULES */
+use crate::common_utils::global_traits::WebSocketInterfaceImpl;
+use crate::common_utils::global_types::EvaluationResult;
 
+/* PRIVATE TYPES AND VARIABLES */
+struct WebSocketSession;
+
+/* PUBLIC TYPES AND VARIABLES */
+pub struct PriceEvaluationWebSocketImpl {}
+
+/* PRIVATE FUNCTIONS */
 impl Actor for WebSocketSession {
     type Context = ws::WebsocketContext<Self>;
 
@@ -33,7 +42,21 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WebSocketSession 
     }
 }
 
-// WebSocket Interface
-pub async fn start_websocket(req: HttpRequest, stream: web::Payload) -> HttpResponse {
-    ws::start(WebSocketSession {}, &req, stream).unwrap_or_else(|_| HttpResponse::InternalServerError().finish())
+/* PUBLIC FUNCTIONS */
+impl WebSocketInterfaceImpl for PriceEvaluationWebSocketImpl {
+    async fn start_web_socket_session(
+        &self,
+        req: HttpRequest,
+        stream: web::Payload,
+    ) -> HttpResponse {
+        println!("start_web_socket_session");
+        ws::start(WebSocketSession {}, &req, stream)
+            .unwrap_or_else(|_| HttpResponse::InternalServerError().finish())
+    }
+
+    fn send_result_to_websocket(&self, _slicer_evaluation_result: EvaluationResult) {
+        println!("send_result_to_websocket");
+    }
 }
+
+/* TESTS */

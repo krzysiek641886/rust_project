@@ -59,4 +59,19 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // Create the form regardless of the API call status
     createForm();
+
+    // WebSocket setup
+    const ws = new WebSocket("ws://127.0.0.1:8080/api/web_socket_results");
+    ws.onopen = function () {
+        console.log("WebSocket connection established.");
+    };
+    ws.onmessage = function (event) {
+        alert("Message from server: " + event.data);
+    };
+    ws.onclose = function () {
+        console.log("WebSocket connection closed.");
+    };
+    ws.onerror = function (error) {
+        console.error("WebSocket error:", error);
+    };
 });
