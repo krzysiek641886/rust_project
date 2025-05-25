@@ -123,10 +123,11 @@ mod tests {
         initialize_prusa_slicer_if(ws_path, prusa_path).unwrap();
 
         let order = SubmittedOrderData {
-            name: Some("John Doe".to_string()),
-            email: Some("john.doe@example.com".to_string()),
+            name: "John Doe".to_string(),
+            email: "john.doe@example.com".to_string(),
             copies_nbr: 5,
-            file_name: Some("file.stl".to_string()),
+            file_name: "file.stl".to_string(),
+            nbr_of_chunks: 42
         };
 
         let result = get_prusa_slicer_evaluation(&order);

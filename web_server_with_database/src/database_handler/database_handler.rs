@@ -121,10 +121,11 @@ mod tests {
     fn test_add_form_submission_to_db() {
         reset_state_and_setup_mocked_interface();
         let order = SubmittedOrderData {
-            name: Some("John Doe".to_string()),
-            email: Some("john.doe@example.com".to_string()),
+            name: "John Doe".to_string(),
+            email: "john.doe@example.com".to_string(),
             copies_nbr: 5,
-            file_name: Some("file.stl".to_string()),
+            file_name: "file.stl".to_string(),
+            nbr_of_chunks: 42
         };
         assert!(add_form_submission_to_db(&order) == true);
     }

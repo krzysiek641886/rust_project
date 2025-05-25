@@ -48,29 +48,12 @@ impl DatabaseInterfaceImpl for DatabaseSQLiteImpl {
     }
 
     fn add_form_submission_to_db(&self, form_fields: SubmittedOrderData) -> io::Result<()> {
-        let name = match form_fields.name {
-            Some(name) => name,
-            None => return Err(io::Error::new(io::ErrorKind::InvalidInput, "Missing name")),
-        };
-        let email = match form_fields.email {
-            Some(email) => email,
-            None => return Err(io::Error::new(io::ErrorKind::InvalidInput, "Missing email")),
-        };
         if form_fields.copies_nbr < 1 {
             return Err(io::Error::new(
                 io::ErrorKind::InvalidInput,
                 "Invalid number of copies",
             ));
         }
-        let file_name = match form_fields.file_name {
-            Some(file_name) => file_name,
-            None => {
-                return Err(io::Error::new(
-                    io::ErrorKind::InvalidInput,
-                    "Missing file name",
-                ))
-            }
-        };
         let db_conn = self.db_conn.lock().unwrap();
         let conn = db_conn.as_ref().ok_or_else(|| {
             io::Error::new(
@@ -80,10 +63,10 @@ impl DatabaseInterfaceImpl for DatabaseSQLiteImpl {
         })?;
         if !write_submission_to_db(
             conn,
-            name.as_str(),
-            email.as_str(),
+            form_fields.name.as_str(),
+            form_fields.email.as_str(),
             form_fields.copies_nbr.to_string().as_str(),
-            file_name.as_str(),
+            form_fields.file_name.as_str(),
         ) {
             return Err(io::Error::new(
                 io::ErrorKind::Other,
@@ -113,10 +96,11 @@ impl DatabaseInterfaceImpl for DatabaseSQLiteImpl {
         let order_iter = stmt
             .query_map([], |row| {
                 Ok(SubmittedOrderData {
-                    name: Some(row.get(0)?),
-                    email: Some(row.get(1)?),
+                    name: row.get(0)?,
+                    email: row.get(1)?,
                     copies_nbr: row.get(2)?,
-                    file_name: Some(row.get(3)?),
+                    file_name: row.get(3)?,
+                    nbr_of_chunks: 0,
                 })
             })
             .map_err(|e| {
