@@ -75,8 +75,8 @@ mod tests {
         *ws_path_lock = None;
         *slicer_exec_path_lock = None;
         *slicer_interface_lock = Box::new(PrusaSlicerMock {
-            price_to_return,
-            ping_result,
+            price_to_return: price_to_return,
+            ping_result: ping_result,
         });
     }
 

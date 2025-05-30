@@ -29,12 +29,7 @@ pub struct PriceEvaluationWebSocketImpl {
 }
 
 /* PRIVATE FUNCTIONS */
-fn append_the_file(
-    filename: &String,
-    total_chunks: u32,
-    chunks_received: u32,
-    bin: Bytes,
-) -> io::Result<u32> {
+fn append_the_file(filename: &String, chunks_received: u32, bin: Bytes) -> io::Result<u32> {
     let file_path = Path::new("data_files/received_orders/").join(filename);
     if let Some(parent) = file_path.parent() {
         std::fs::create_dir_all(parent).ok();
@@ -107,7 +102,7 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WebSocketSession 
                     if self.chunks_received >= total_chunks {
                         panic!("Incorrect number of chunks. TBA handling");
                     }
-                    match append_the_file(filename, total_chunks, self.chunks_received, bin) {
+                    match append_the_file(filename, self.chunks_received, bin) {
                         Ok(chunks_received) => {
                             self.chunks_received = chunks_received;
                         }
