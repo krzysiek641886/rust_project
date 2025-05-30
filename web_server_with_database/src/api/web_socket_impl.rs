@@ -56,6 +56,7 @@ fn append_the_file(
 fn serialize_evaluation_result(eval_result: EvaluationResult) -> String {
     // Serialize the EvaluationResult to a JSON string
     serde_json::json!({
+        "type": "evaluation_result",
         "name": eval_result.name,
         "email": eval_result.email,
         "copies_nbr": eval_result.copies_nbr,
@@ -104,7 +105,7 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WebSocketSession 
                 self.reset_session();
                 let close_reason = CloseReason { 
                     code: ws::CloseCode::Invalid,
-                    description: Some(format!("Submitted form invalid:\n {}", text).to_string()),
+                    description: None,
                 };
                 ctx.close(Some(close_reason));
             }

@@ -1,3 +1,6 @@
+var ERROR_CODE_FAIELD_PROCESSING_SUBMITTED_FORM = 1006;
+var EVALUATION_RESULT_TYPE = "evaluation_result";
+
 /**
  * Function to create the form and add event listeners.
  */
@@ -86,13 +89,23 @@ document.addEventListener("DOMContentLoaded", function () {
         console.log("WebSocket connection established.");
     };
     window.ws.onmessage = function (event) {
-        alert("Message from server: " + event.data);
+        // Parse the received JSON string
+        try {
+            let data = JSON.parse(event.data);
+            if (data.type === EVALUATION_RESULT_TYPE) {
+                alert("Evaluation result: " + event.data);
+            }
+        }  catch(e) {
+            // Do nothing
+        }
+        finally {
+            console.log("Received message: ", event.data);
+        }
     };
-    window.ws.onclose = function () {
-        console.log("WebSocket connection closed.");
-    };
-    window.ws.onerror = function (error) {
-        console.error("WebSocket error:", error);
+    window.ws.onclose = function (event) {
+        if (event.code === ERROR_CODE_FAIELD_PROCESSING_SUBMITTED_FORM) {
+            alert("Error with processing the request. Websocket connection closed unexpectedly.");
+        }
     };
 
     // Create the form regardless of the API call status
