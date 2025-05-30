@@ -1,11 +1,11 @@
 /* IMPORTS FROM LIBRARIES */
 use lazy_static::lazy_static;
-use std::sync::Mutex;
 use std::io::Result;
+use std::sync::Mutex;
 
 /* IMPORTS FROM OTHER MODULES */
-use crate::common_utils::global_types::{EvaluationResult, SubmittedOrderData};
 use crate::common_utils::global_traits::DatabaseInterfaceImpl;
+use crate::common_utils::global_types::{EvaluationResult, SubmittedOrderData};
 use crate::database_handler::database_sqlite_impl::DatabaseSQLiteImpl;
 
 /* PRIVATE TYPES AND VARIABLES */
@@ -15,7 +15,9 @@ struct State {
 
 lazy_static! {
     static ref DB_HANDLER_STATE: State = State {
-        db_impl: Mutex::new(Box::new(DatabaseSQLiteImpl { db_conn: Mutex::new(None) })),
+        db_impl: Mutex::new(Box::new(DatabaseSQLiteImpl {
+            db_conn: Mutex::new(None)
+        })),
     };
 }
 
@@ -35,7 +37,9 @@ lazy_static! {
  */
 pub fn initialize_db(db_name: &str) {
     let database_handler_impl = DB_HANDLER_STATE.db_impl.lock().unwrap();
-    database_handler_impl.initialize_db(db_name).expect("Failed to initialize database");
+    database_handler_impl
+        .initialize_db(db_name)
+        .expect("Failed to initialize database");
 }
 
 /**
@@ -46,10 +50,10 @@ pub fn initialize_db(db_name: &str) {
  * @param form_fields Submitted order data.
  * @return bool True if the submission was successfully added, false otherwise.
  */
-pub fn add_form_submission_to_db(form_fields: SubmittedOrderData) -> bool {
+pub fn add_form_submission_to_db(form_fields: &SubmittedOrderData) -> bool {
     let database_handler_impl = DB_HANDLER_STATE.db_impl.lock().unwrap();
-    match database_handler_impl.add_form_submission_to_db(form_fields)
-    {
+    let fields_cpy = form_fields.clone();
+    match database_handler_impl.add_form_submission_to_db(fields_cpy) {
         Ok(_) => return true,
         Err(_) => return false,
     }
@@ -70,18 +74,6 @@ pub fn read_orders_from_db() -> Result<Vec<SubmittedOrderData>> {
 }
 
 /**
- * @brief Retrieves a pending order from the database.
- *
- * This function returns a pending order if one exists. Currently, it is a placeholder.
- *
- * @return Option<SubmittedOrderData> A pending order or None if no orders are pending.
- */
-pub fn get_pending_order() -> Option<SubmittedOrderData> {
-    let database_handler_impl = DB_HANDLER_STATE.db_impl.lock().unwrap();
-    return database_handler_impl.get_pending_order();
-}
-
-/**
  * @brief Adds an evaluation result to the database.
  *
  * This function stores the evaluation result of an order in the database.
@@ -89,8 +81,11 @@ pub fn get_pending_order() -> Option<SubmittedOrderData> {
  *
  * @param _slicer_evaluation_result Evaluation result to be added.
  */
-pub fn add_evaluation_to_db(_slicer_evaluation_result: EvaluationResult) {
-    // Placeholder for the function
+pub fn add_evaluation_to_db(slicer_evaluation_result: &EvaluationResult) {
+    println!(
+        "add_evaluation_to_db called. To be implemented. Price: {:}",
+        slicer_evaluation_result.price
+    );
 }
 
 /**
@@ -100,15 +95,15 @@ pub fn add_evaluation_to_db(_slicer_evaluation_result: EvaluationResult) {
  *
  * @param _order Order to be removed.
  */
-pub fn remove_order_from_db(_order: SubmittedOrderData) {
-    // Placeholder for the function
+pub fn remove_order_from_db(_order: &SubmittedOrderData) {
+    println!("remove_order_from_db called. To be implemented");
 }
 
 /* TESTS */
 #[cfg(test)]
 mod tests {
-use super::*;
-use crate::database_handler::database_mock::DatabaseMockImpl;
+    use super::*;
+    use crate::database_handler::database_mock::DatabaseMockImpl;
 
     /// Helper function to reset the global state
     fn reset_state_and_setup_mocked_interface() {
@@ -126,12 +121,12 @@ use crate::database_handler::database_mock::DatabaseMockImpl;
     fn test_add_form_submission_to_db() {
         reset_state_and_setup_mocked_interface();
         let order = SubmittedOrderData {
-            name: Some("John Doe".to_string()),
-            email: Some("john.doe@example.com".to_string()),
+            name: "John Doe".to_string(),
+            email: "john.doe@example.com".to_string(),
             copies_nbr: 5,
-            file_name: Some("file.stl".to_string()),
+            file_name: "file.stl".to_string(),
+            nbr_of_chunks: 42,
         };
-        assert!(add_form_submission_to_db(order) == true);
+        assert!(add_form_submission_to_db(&order) == true);
     }
-
 }

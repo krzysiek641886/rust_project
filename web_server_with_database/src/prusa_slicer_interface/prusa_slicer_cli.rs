@@ -50,12 +50,19 @@ impl SlicerInterfaceImpl for PrusaSlicerCli {
      */
     fn evaluate(
         &self,
-        _order: &SubmittedOrderData,
+        order: &SubmittedOrderData,
         _slicer_path: &str,
         _ws_path: &str,
     ) -> EvaluationResult {
         // prusa-slicer -g --load prusa_config.ini --output sliced.gcode '/Users/username/Projects/rust_project/web_server_with_database/data_files/received_orders/stl_file.stl'
-        EvaluationResult { _price: 0.0 }
+
+        EvaluationResult {
+            name: order.name.clone(),
+            email: order.email.clone(),
+            copies_nbr: order.copies_nbr,
+            file_name: order.file_name.clone(),
+            price: 42.0,
+        }
     }
 }
 

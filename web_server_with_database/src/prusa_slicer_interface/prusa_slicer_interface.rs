@@ -75,8 +75,8 @@ mod tests {
         *ws_path_lock = None;
         *slicer_exec_path_lock = None;
         *slicer_interface_lock = Box::new(PrusaSlicerMock {
-            price_to_return,
-            ping_result,
+            price_to_return: price_to_return,
+            ping_result: ping_result,
         });
     }
 
@@ -123,13 +123,14 @@ mod tests {
         initialize_prusa_slicer_if(ws_path, prusa_path).unwrap();
 
         let order = SubmittedOrderData {
-            name: Some("John Doe".to_string()),
-            email: Some("john.doe@example.com".to_string()),
+            name: "John Doe".to_string(),
+            email: "john.doe@example.com".to_string(),
             copies_nbr: 5,
-            file_name: Some("file.stl".to_string()),
+            file_name: "file.stl".to_string(),
+            nbr_of_chunks: 42,
         };
 
         let result = get_prusa_slicer_evaluation(&order);
-        assert_eq!(result._price, 42.0, "Evaluation result price is incorrect");
+        assert_eq!(result.price, 42.0, "Evaluation result price is incorrect");
     }
 }

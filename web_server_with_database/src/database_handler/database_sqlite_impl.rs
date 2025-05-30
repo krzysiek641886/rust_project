@@ -14,12 +14,19 @@ pub struct DatabaseSQLiteImpl {
 }
 
 /* PRIVATE FUNCTIONS */
-fn write_submission_to_db(db_conn: &Connection ,name: &str, email: &str, copes_nbr: &str, file_name: &str) -> bool {
-    db_conn.execute(
-        "INSERT INTO Orders (name, email, copies_nbr, file_name) VALUES (?1, ?2, ?3, ?4)",
-        &[&name, &email, copes_nbr, &file_name],
-    )
-    .is_ok()
+fn write_submission_to_db(
+    db_conn: &Connection,
+    name: &str,
+    email: &str,
+    copes_nbr: &str,
+    file_name: &str,
+) -> bool {
+    db_conn
+        .execute(
+            "INSERT INTO Orders (name, email, copies_nbr, file_name) VALUES (?1, ?2, ?3, ?4)",
+            &[&name, &email, copes_nbr, &file_name],
+        )
+        .is_ok()
 }
 
 /* PUBLIC FUNCTIONS */
@@ -41,77 +48,71 @@ impl DatabaseInterfaceImpl for DatabaseSQLiteImpl {
     }
 
     fn add_form_submission_to_db(&self, form_fields: SubmittedOrderData) -> io::Result<()> {
-        let name = match form_fields.name {
-            Some(name) => name,
-            None => return Err(io::Error::new(io::ErrorKind::InvalidInput, "Missing name")),
-        };
-        let email = match form_fields.email {
-            Some(email) => email,
-            None => return Err(io::Error::new(io::ErrorKind::InvalidInput, "Missing email")),
-        };
         if form_fields.copies_nbr < 1 {
-            return Err(io::Error::new(io::ErrorKind::InvalidInput, "Invalid number of copies"));
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidInput,
+                "Invalid number of copies",
+            ));
         }
-        let file_name = match form_fields.file_name {
-            Some(file_name) => file_name,
-            None => return Err(io::Error::new(io::ErrorKind::InvalidInput, "Missing file name")),
-        };
         let db_conn = self.db_conn.lock().unwrap();
         let conn = db_conn.as_ref().ok_or_else(|| {
-            io::Error::new(io::ErrorKind::NotConnected, "Database connection is not initialized")
+            io::Error::new(
+                io::ErrorKind::NotConnected,
+                "Database connection is not initialized",
+            )
         })?;
         if !write_submission_to_db(
             conn,
-            name.as_str(),
-            email.as_str(),
+            form_fields.name.as_str(),
+            form_fields.email.as_str(),
             form_fields.copies_nbr.to_string().as_str(),
-            file_name.as_str(),
+            form_fields.file_name.as_str(),
         ) {
-            return Err(io::Error::new(io::ErrorKind::Other, "Failed to write to database"));
+            return Err(io::Error::new(
+                io::ErrorKind::Other,
+                "Failed to write to database",
+            ));
         }
         Ok(())
     }
 
     fn read_orders_from_db(&self) -> io::Result<Vec<SubmittedOrderData>> {
         let db_conn = self.db_conn.lock().unwrap();
-        let conn = db_conn
-            .as_ref()
-            .ok_or_else(|| io::Error::new(io::ErrorKind::NotConnected, "Database connection is not initialized"))?;
+        let conn = db_conn.as_ref().ok_or_else(|| {
+            io::Error::new(
+                io::ErrorKind::NotConnected,
+                "Database connection is not initialized",
+            )
+        })?;
 
         let mut stmt = conn
             .prepare("SELECT name, email, copies_nbr, file_name FROM Orders")
-            .map_err(|e| io::Error::new(io::ErrorKind::Other, format!("Failed to prepare statement: {}", e)))?;
+            .map_err(|e| {
+                io::Error::new(
+                    io::ErrorKind::Other,
+                    format!("Failed to prepare statement: {}", e),
+                )
+            })?;
         let order_iter = stmt
             .query_map([], |row| {
                 Ok(SubmittedOrderData {
-                    name: Some(row.get(0)?),
-                    email: Some(row.get(1)?),
+                    name: row.get(0)?,
+                    email: row.get(1)?,
                     copies_nbr: row.get(2)?,
-                    file_name: Some(row.get(3)?),
+                    file_name: row.get(3)?,
+                    nbr_of_chunks: 0,
                 })
             })
-            .map_err(|e| io::Error::new(io::ErrorKind::Other, format!("Failed to query rows: {}", e)))?;
+            .map_err(|e| {
+                io::Error::new(io::ErrorKind::Other, format!("Failed to query rows: {}", e))
+            })?;
 
         let mut orders = Vec::new();
         for order in order_iter {
-            orders.push(order.map_err(|e| io::Error::new(io::ErrorKind::Other, format!("Failed to map row: {}", e)))?);
+            orders.push(order.map_err(|e| {
+                io::Error::new(io::ErrorKind::Other, format!("Failed to map row: {}", e))
+            })?);
         }
         Ok(orders)
-    }
-
-    fn get_pending_order(&self) -> Option<SubmittedOrderData> {
-        match self.read_orders_from_db() {
-            Ok(orders) => {
-                if orders.is_empty() {
-                    return None;
-                }
-                let order = orders[0].clone();
-                return Some(order);
-            }
-            Err(_) => {
-                println!("Error reading orders from database");
-            }
-        }
-        return None;
     }
 }
