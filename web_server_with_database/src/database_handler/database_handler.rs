@@ -84,7 +84,7 @@ pub fn read_orders_from_db() -> Result<Vec<SubmittedOrderData>> {
 pub fn add_evaluation_to_db(slicer_evaluation_result: &EvaluationResult) {
     println!(
         "add_evaluation_to_db called. To be implemented\n {:}",
-        slicer_evaluation_result._price
+        slicer_evaluation_result.price
     );
 }
 

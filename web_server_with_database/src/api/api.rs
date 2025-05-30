@@ -9,7 +9,7 @@ use crate::api::web_socket_impl::PriceEvaluationWebSocketImpl;
 use crate::common_utils::global_traits::WebSocketInterfaceImpl;
 use crate::common_utils::global_types::{EvaluationResult, SubmittedOrderData};
 use crate::database_handler::{
-    add_evaluation_to_db, read_orders_from_db, remove_order_from_db,
+    add_evaluation_to_db, read_orders_from_db, remove_order_from_db
 };
 use crate::prusa_slicer_interface::get_prusa_slicer_evaluation;
 

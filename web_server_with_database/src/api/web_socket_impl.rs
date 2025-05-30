@@ -52,9 +52,18 @@ fn append_the_file(
     Ok(chunks_received + 1)
 }
 
-fn serialize_evaluation_result(_eval_result: EvaluationResult) -> String {
+fn serialize_evaluation_result(eval_result: EvaluationResult) -> String {
     // Serialize the EvaluationResult to a JSON string
-    String::from("{\"status\": \"success\", \"message\": \"Evaluation completed successfully.\"}")
+    serde_json::json!({
+        "name": eval_result.name,
+        "email": eval_result.email,
+        "copies_nbr": eval_result.copies_nbr,
+        "file_name": eval_result.file_name,
+        "price": eval_result.price,
+        "status": "success",
+        "message": "Evaluation completed successfully."
+    })
+    .to_string()
 }
 
 impl Actor for WebSocketSession {

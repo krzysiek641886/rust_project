@@ -35,7 +35,12 @@ impl SlicerInterfaceImpl for PrusaSlicerMock {
         _slicer_path: &str,
         _ws_path: &str,
     ) -> EvaluationResult {
-        EvaluationResult { _price: self.price_to_return }
+        EvaluationResult {
+            name: String::from("Dummy name"),
+            email: String::from("Dummy email"),
+            copies_nbr: 42,
+            file_name: String::from("Dummy file_name"),
+            price: self.price_to_return }
     }
 }
 
