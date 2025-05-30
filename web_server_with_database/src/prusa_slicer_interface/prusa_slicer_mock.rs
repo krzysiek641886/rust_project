@@ -8,8 +8,7 @@ use crate::common_utils::global_types::{EvaluationResult, SubmittedOrderData};
 /* PRIVATE TYPES AND VARIABLES */
 
 /* PUBLIC TYPES AND VARIABLES */
-pub struct PrusaSlicerMock
-{
+pub struct PrusaSlicerMock {
     pub price_to_return: f64,
     pub ping_result: bool,
 }
@@ -40,7 +39,8 @@ impl SlicerInterfaceImpl for PrusaSlicerMock {
             email: String::from("Dummy email"),
             copies_nbr: 42,
             file_name: String::from("Dummy file_name"),
-            price: self.price_to_return }
+            price: self.price_to_return,
+        }
     }
 }
 

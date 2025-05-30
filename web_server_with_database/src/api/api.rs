@@ -9,7 +9,7 @@ use crate::api::web_socket_impl::PriceEvaluationWebSocketImpl;
 use crate::common_utils::global_traits::WebSocketInterfaceImpl;
 use crate::common_utils::global_types::{EvaluationResult, SubmittedOrderData};
 use crate::database_handler::{
-    add_evaluation_to_db, read_orders_from_db, remove_order_from_db, add_form_submission_to_db
+    add_evaluation_to_db, add_form_submission_to_db, read_orders_from_db, remove_order_from_db,
 };
 use crate::prusa_slicer_interface::get_prusa_slicer_evaluation;
 
@@ -80,7 +80,6 @@ pub async fn app_init_status_handler() -> impl Responder {
  * @return HttpResponse WebSocket response.
  */
 pub async fn eval_result_websocket_handler(req: HttpRequest, stream: web::Payload) -> HttpResponse {
-    println!("eval_result_websocket_handler");
     let websocket_session = API_HANDLER_STATE.websocket_session.lock().unwrap();
     websocket_session
         .start_web_socket_session(req, stream)

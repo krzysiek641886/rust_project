@@ -3,8 +3,8 @@ use actix::AsyncContext;
 use actix::{Actor, Addr, StreamHandler};
 use actix_web::{web, HttpRequest, HttpResponse};
 use actix_web_actors::ws::{self, CloseReason};
-use std::io;
 use bytes::Bytes;
+use std::io;
 
 /* IMPORTS FROM OTHER MODULES */
 use crate::common_utils::global_traits::WebSocketInterfaceImpl;
@@ -44,12 +44,6 @@ fn append_the_file(
         .append(true)
         .open(&file_path)?;
     file.write_all(&bin)?;
-    println!(
-        "Appended chunk {}/{} to file {}",
-        chunks_received + 1,
-        total_chunks,
-        filename
-    );
     Ok(chunks_received + 1)
 }
 
@@ -72,7 +66,6 @@ impl Actor for WebSocketSession {
     type Context = ws::WebsocketContext<Self>;
 
     fn started(&mut self, ctx: &mut Self::Context) {
-        ctx.text("WebSocket connection established. Updates will be sent here.");
         self.my_addr = Some(ctx.address());
     }
 }
@@ -88,10 +81,8 @@ impl WebSocketSession {
 // Implement StreamHandler to handle incoming WebSocket messages
 impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WebSocketSession {
     fn handle(&mut self, msg: Result<ws::Message, ws::ProtocolError>, ctx: &mut Self::Context) {
-        println!("Inside StreamHandler msg");
         match msg {
             Ok(ws::Message::Text(text)) => {
-                println!("Received message {}", text);
                 // Parse the text message into a SubmittedOrderData struct
                 match serde_json::from_str::<SubmittedOrderData>(&text) {
                     Ok(data) => {
@@ -99,41 +90,38 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WebSocketSession 
                             self.submitted_form = Some(data);
                             return;
                         }
-                    },
+                    }
                     _ => {}
                 }
                 self.reset_session();
-                let close_reason = CloseReason { 
+                let close_reason = CloseReason {
                     code: ws::CloseCode::Invalid,
                     description: None,
                 };
                 ctx.close(Some(close_reason));
             }
             Ok(ws::Message::Binary(bin)) => {
-                // Handle file upload (binary data)
-                println!("Received binary data of length: {}", bin.len());
-                // Here you could process the file, save it, etc.
-                ctx.text(format!("Received file of {} bytes", bin.len()));
-
                 if let Some(ref form) = self.submitted_form {
                     let filename = &form.file_name;
                     let total_chunks = form.nbr_of_chunks;
                     if self.chunks_received >= total_chunks {
-                        panic!("Incorrect number of chunks. TBA handled");
+                        panic!("Incorrect number of chunks. TBA handling");
                     }
                     match append_the_file(filename, total_chunks, self.chunks_received, bin) {
                         Ok(chunks_received) => {
                             self.chunks_received = chunks_received;
                         }
-                        Err(e) => {
-                            println!("Failed to append file: {}", e);
-                            ctx.text(format!("Error uploading the file: {}", e));
+                        Err(_e) => {
+                            self.reset_session();
+                            let close_reason = CloseReason {
+                                code: ws::CloseCode::Error,
+                                description: None,
+                            };
+                            ctx.close(Some(close_reason));
                             return;
                         }
                     }
-
                     if self.chunks_received == total_chunks {
-                        println!("Upload complete for file: {}", filename);
                         let result = (self.evaluate_order_cb)(form);
                         // Serialize the evaluation result to a JSON string
                         let json_result = serialize_evaluation_result(result);
@@ -148,7 +136,6 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WebSocketSession 
                 }
             }
             _ => {
-                println!("Received unsupported WebSocket message type");
                 ctx.text("Unsupported message type. Only text and binary messages are supported.");
             }
         }
@@ -162,7 +149,6 @@ impl WebSocketInterfaceImpl for PriceEvaluationWebSocketImpl {
         req: HttpRequest,
         stream: web::Payload,
     ) -> HttpResponse {
-        println!("start_web_socket_session");
         ws::start(
             WebSocketSession {
                 my_addr: None,

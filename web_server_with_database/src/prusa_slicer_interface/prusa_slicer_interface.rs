@@ -127,7 +127,7 @@ mod tests {
             email: "john.doe@example.com".to_string(),
             copies_nbr: 5,
             file_name: "file.stl".to_string(),
-            nbr_of_chunks: 42
+            nbr_of_chunks: 42,
         };
 
         let result = get_prusa_slicer_evaluation(&order);

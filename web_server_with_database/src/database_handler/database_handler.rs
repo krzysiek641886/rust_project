@@ -83,7 +83,7 @@ pub fn read_orders_from_db() -> Result<Vec<SubmittedOrderData>> {
  */
 pub fn add_evaluation_to_db(slicer_evaluation_result: &EvaluationResult) {
     println!(
-        "add_evaluation_to_db called. To be implemented\n {:}",
+        "add_evaluation_to_db called. To be implemented. Price: {:}",
         slicer_evaluation_result.price
     );
 }
@@ -125,7 +125,7 @@ mod tests {
             email: "john.doe@example.com".to_string(),
             copies_nbr: 5,
             file_name: "file.stl".to_string(),
-            nbr_of_chunks: 42
+            nbr_of_chunks: 42,
         };
         assert!(add_form_submission_to_db(&order) == true);
     }

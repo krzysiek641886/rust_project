@@ -56,7 +56,7 @@ impl SlicerInterfaceImpl for PrusaSlicerCli {
     ) -> EvaluationResult {
         // prusa-slicer -g --load prusa_config.ini --output sliced.gcode '/Users/username/Projects/rust_project/web_server_with_database/data_files/received_orders/stl_file.stl'
 
-        EvaluationResult { 
+        EvaluationResult {
             name: order.name.clone(),
             email: order.email.clone(),
             copies_nbr: order.copies_nbr,

@@ -1,4 +1,4 @@
-var ERROR_CODE_FAIELD_PROCESSING_SUBMITTED_FORM = 1006;
+var ERROR_CODE_FAILED_PROCESSING_SUBMITTED_FORM = 1006;
 var EVALUATION_RESULT_TYPE = "evaluation_result";
 
 /**
@@ -30,7 +30,7 @@ function createForm() {
             alert("No file selected.");
             return;
         }
-        if (!file.size) {     
+        if (!file.size) {
             alert("Empty file selected.");
             return;
         }
@@ -95,7 +95,7 @@ document.addEventListener("DOMContentLoaded", function () {
             if (data.type === EVALUATION_RESULT_TYPE) {
                 alert("Evaluation result: " + event.data);
             }
-        }  catch(e) {
+        } catch (e) {
             // Do nothing
         }
         finally {
@@ -103,7 +103,8 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     };
     window.ws.onclose = function (event) {
-        if (event.code === ERROR_CODE_FAIELD_PROCESSING_SUBMITTED_FORM) {
+        console.log(event);
+        if (event.code === ERROR_CODE_FAILED_PROCESSING_SUBMITTED_FORM) {
             alert("Error with processing the request. Websocket connection closed unexpectedly.");
         }
     };

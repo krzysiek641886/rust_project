@@ -13,7 +13,8 @@ use std::sync::Mutex;
 
 /* IMPORTS FROM OTHER MODULES */
 use api::{
-    app_init_status_handler, get_orders_handler, initialize_api_handler, eval_result_websocket_handler,
+    app_init_status_handler, eval_result_websocket_handler, get_orders_handler,
+    initialize_api_handler,
 };
 use database_handler::initialize_db;
 use prusa_slicer_interface::initialize_prusa_slicer_if;
@@ -85,7 +86,10 @@ async fn main() -> std::io::Result<()> {
         App::new()
             .route("/api/backendstatus", web::get().to(app_init_status_handler))
             .route("/api/orders", web::get().to(get_orders_handler)) // Add API route for file upload
-            .route("/api/websocket_evaluation", web::get().to(eval_result_websocket_handler)) // Add WebSocket route
+            .route(
+                "/api/websocket_evaluation",
+                web::get().to(eval_result_websocket_handler),
+            ) // Add WebSocket route
             // The index page has to be initialized after API endpoints
             .service(fs::Files::new("/", "./src/frontend").index_file("index.html"))
     })
