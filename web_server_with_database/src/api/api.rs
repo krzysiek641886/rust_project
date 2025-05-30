@@ -40,23 +40,9 @@ fn start_evaluation(form_fields: &SubmittedOrderData) -> bool {
             let eval_result = get_prusa_slicer_evaluation(&received_order_cpy);
             add_evaluation_to_db(&eval_result);
             remove_order_from_db(received_order_cpy);
-            send_result_to_client(eval_result);
         }
     });
     return true;
-}
-
-/**
- * @brief Sends the evaluation result to the client.
- *
- * This function sends the evaluation result of an order to the client.
- *
- * @param _slicer_evaluation_result Reference to the evaluation result.
- */
-fn send_result_to_client(slicer_evaluation_result: EvaluationResult) {
-    println!("Send the evaluation result to the client: {:?}", slicer_evaluation_result._price);
-    let websocket_session = API_HANDLER_STATE.websocket_session.lock().unwrap();
-    websocket_session.send_result_to_websocket(slicer_evaluation_result);
 }
 
 /* PUBLIC FUNCTIONS */

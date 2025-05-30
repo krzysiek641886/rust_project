@@ -110,6 +110,8 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WebSocketSession 
                         //         // Notify the client that the form was successfully submitted
                         //         return HttpResponse::InternalServerError().body("Price evaluation failed");
                         //     }
+
+                        // Send the result to the client
                     }
                 } else {
                     println!("No submitted form data available to get filename and total_chunks.");
@@ -142,10 +144,6 @@ impl WebSocketInterfaceImpl for PriceEvaluationWebSocketImpl {
             stream,
         )
         .unwrap_or_else(|_| HttpResponse::InternalServerError().finish())
-    }
-
-    fn send_result_to_websocket(&self, _slicer_evaluation_result: EvaluationResult) {
-        println!("send_result_to_websocket");
     }
 }
 

@@ -25,6 +25,4 @@ pub trait WebSocketInterfaceImpl {
         req: HttpRequest,
         stream: web::Payload,
     ) -> HttpResponse;
-
-    fn send_result_to_websocket(&self, slicer_evaluation_result: EvaluationResult);
 }
