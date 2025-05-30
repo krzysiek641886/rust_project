@@ -95,7 +95,7 @@ pub fn add_evaluation_to_db(slicer_evaluation_result: &EvaluationResult) {
  *
  * @param _order Order to be removed.
  */
-pub fn remove_order_from_db(_order: SubmittedOrderData) {
+pub fn remove_order_from_db(_order: &SubmittedOrderData) {
     println!("remove_order_from_db called. To be implemented");
 }
 

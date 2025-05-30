@@ -18,10 +18,14 @@ struct WebSocketSession {
     pub my_addr: Option<Addr<WebSocketSession>>,
     submitted_form: Option<SubmittedOrderData>,
     chunks_received: u32,
+    pub evaluate_order_cb: fn(&SubmittedOrderData) -> EvaluationResult,
 }
 
 /* PUBLIC TYPES AND VARIABLES */
-pub struct PriceEvaluationWebSocketImpl {}
+pub struct PriceEvaluationWebSocketImpl {
+    pub evaluate_order_cb: fn(&SubmittedOrderData) -> EvaluationResult,
+
+}
 
 /* PRIVATE FUNCTIONS */
 fn append_the_file(
@@ -48,12 +52,25 @@ fn append_the_file(
     Ok(chunks_received + 1)
 }
 
+fn serialize_evaluation_result(_eval_result: EvaluationResult) -> String {
+    // Serialize the EvaluationResult to a JSON string
+    String::from("{\"status\": \"success\", \"message\": \"Evaluation completed successfully.\"}")
+}
+
 impl Actor for WebSocketSession {
     type Context = ws::WebsocketContext<Self>;
 
     fn started(&mut self, ctx: &mut Self::Context) {
         ctx.text("WebSocket connection established. Updates will be sent here.");
         self.my_addr = Some(ctx.address());
+    }
+}
+
+impl WebSocketSession {
+    // Private helper function to reset the session state
+    fn reset_session(&mut self) {
+        self.submitted_form = None;
+        self.chunks_received = 0;
     }
 }
 
@@ -100,18 +117,14 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WebSocketSession 
                     }
 
                     if self.chunks_received == total_chunks {
-                        ctx.text(format!("Upload complete for file: {}", filename));
-                        //     if add_form_submission_to_db(&form_fields) == false {
-                        //         // Notify the client that the form was successfully submitted
-                        //         return HttpResponse::InternalServerError().body("Server database failed");
-                        //     }
-
-                        //     if start_evaluation(&form_fields) == false {
-                        //         // Notify the client that the form was successfully submitted
-                        //         return HttpResponse::InternalServerError().body("Price evaluation failed");
-                        //     }
-
-                        // Send the result to the client
+                        println!("Upload complete for file: {}", filename);
+                        let result = (self.evaluate_order_cb)(form);
+                        // Serialize the evaluation result to a JSON string
+                        let json_result = serialize_evaluation_result(result);
+                        // Send the evaluation result back to the client
+                        ctx.text(json_result);
+                        // Reset the session state after processing
+                        self.reset_session();
                     }
                 } else {
                     println!("No submitted form data available to get filename and total_chunks.");
@@ -139,6 +152,7 @@ impl WebSocketInterfaceImpl for PriceEvaluationWebSocketImpl {
                 my_addr: None,
                 submitted_form: None,
                 chunks_received: 0,
+                evaluate_order_cb: self.evaluate_order_cb,
             },
             &req,
             stream,

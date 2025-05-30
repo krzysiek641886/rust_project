@@ -22,27 +22,20 @@ struct State {
 lazy_static! {
     static ref API_HANDLER_STATE: State = State {
         app_init_status: Mutex::new(false),
-        websocket_session: Mutex::new(PriceEvaluationWebSocketImpl {}),
+        websocket_session: Mutex::new(PriceEvaluationWebSocketImpl {
+            evaluate_order_cb: evaluate_order,
+        }),
     };
 }
 
 /* PUBLIC TYPES AND VARIABLES */
 
 /* PRIVATE FUNCTIONS */
-fn start_evaluation(form_fields: &SubmittedOrderData) -> bool {
-    std::thread::spawn({
-        let received_order_cpy = form_fields.clone();
-        move || {
-            println!(
-                "Background evaluation started for: {:?}",
-                received_order_cpy
-            );
-            let eval_result = get_prusa_slicer_evaluation(&received_order_cpy);
-            add_evaluation_to_db(&eval_result);
-            remove_order_from_db(received_order_cpy);
-        }
-    });
-    return true;
+fn evaluate_order(form_fields: &SubmittedOrderData) -> EvaluationResult {
+    let eval_result = get_prusa_slicer_evaluation(&form_fields);
+    add_evaluation_to_db(&eval_result);
+    remove_order_from_db(&form_fields);
+    return eval_result;
 }
 
 /* PUBLIC FUNCTIONS */
