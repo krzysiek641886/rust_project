@@ -131,6 +131,6 @@ mod tests {
         };
 
         let result = get_prusa_slicer_evaluation(&order);
-        assert_eq!(result._price, 42.0, "Evaluation result price is incorrect");
+        assert_eq!(result.price, 42.0, "Evaluation result price is incorrect");
     }
 }

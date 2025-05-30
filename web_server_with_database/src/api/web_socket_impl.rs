@@ -2,7 +2,7 @@
 use actix::AsyncContext;
 use actix::{Actor, Addr, StreamHandler};
 use actix_web::{web, HttpRequest, HttpResponse};
-use actix_web_actors::ws;
+use actix_web_actors::ws::{self, CloseReason};
 use std::io;
 use bytes::Bytes;
 
@@ -18,13 +18,14 @@ struct WebSocketSession {
     pub my_addr: Option<Addr<WebSocketSession>>,
     submitted_form: Option<SubmittedOrderData>,
     chunks_received: u32,
+    pub add_form_submission_to_db_cb: fn(&SubmittedOrderData) -> bool,
     pub evaluate_order_cb: fn(&SubmittedOrderData) -> EvaluationResult,
 }
 
 /* PUBLIC TYPES AND VARIABLES */
 pub struct PriceEvaluationWebSocketImpl {
+    pub add_form_submission_to_db_cb: fn(&SubmittedOrderData) -> bool,
     pub evaluate_order_cb: fn(&SubmittedOrderData) -> EvaluationResult,
-
 }
 
 /* PRIVATE FUNCTIONS */
@@ -90,17 +91,22 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WebSocketSession 
         match msg {
             Ok(ws::Message::Text(text)) => {
                 println!("Received message {}", text);
-                self.submitted_form = {
-                    // Parse the text message into a SubmittedOrderData struct
-                    match serde_json::from_str::<SubmittedOrderData>(&text) {
-                        Ok(data) => Some(data),
-                        Err(e) => {
-                            println!("Failed to parse SubmittedOrderData: {}", e);
-                            None
+                // Parse the text message into a SubmittedOrderData struct
+                match serde_json::from_str::<SubmittedOrderData>(&text) {
+                    Ok(data) => {
+                        if (self.add_form_submission_to_db_cb)(&data) {
+                            self.submitted_form = Some(data);
+                            return;
                         }
-                    }
+                    },
+                    _ => {}
+                }
+                self.reset_session();
+                let close_reason = CloseReason { 
+                    code: ws::CloseCode::Invalid,
+                    description: Some(format!("Submitted form invalid:\n {}", text).to_string()),
                 };
-                ctx.text(format!("Echo: {}", text)); // Echo the message back to the client
+                ctx.close(Some(close_reason));
             }
             Ok(ws::Message::Binary(bin)) => {
                 // Handle file upload (binary data)
@@ -161,6 +167,7 @@ impl WebSocketInterfaceImpl for PriceEvaluationWebSocketImpl {
                 my_addr: None,
                 submitted_form: None,
                 chunks_received: 0,
+                add_form_submission_to_db_cb: self.add_form_submission_to_db_cb,
                 evaluate_order_cb: self.evaluate_order_cb,
             },
             &req,

@@ -9,7 +9,7 @@ use crate::api::web_socket_impl::PriceEvaluationWebSocketImpl;
 use crate::common_utils::global_traits::WebSocketInterfaceImpl;
 use crate::common_utils::global_types::{EvaluationResult, SubmittedOrderData};
 use crate::database_handler::{
-    add_evaluation_to_db, read_orders_from_db, remove_order_from_db
+    add_evaluation_to_db, read_orders_from_db, remove_order_from_db, add_form_submission_to_db
 };
 use crate::prusa_slicer_interface::get_prusa_slicer_evaluation;
 
@@ -23,6 +23,7 @@ lazy_static! {
     static ref API_HANDLER_STATE: State = State {
         app_init_status: Mutex::new(false),
         websocket_session: Mutex::new(PriceEvaluationWebSocketImpl {
+            add_form_submission_to_db_cb: add_form_submission_to_db,
             evaluate_order_cb: evaluate_order,
         }),
     };
