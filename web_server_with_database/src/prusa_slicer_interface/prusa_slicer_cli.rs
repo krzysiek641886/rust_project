@@ -5,11 +5,9 @@ use std::process::Command;
 /* IMPORTS FROM OTHER MODULES */
 use crate::common_utils::global_traits::SlicerInterfaceImpl;
 use crate::common_utils::global_types::{EvaluationResult, SubmittedOrderData};
+use crate::prusa_slicer_interface::prusa_slicer_price_calculator::{EvaluatedPrintingParameters, calculate_the_price};
 
 /* PRIVATE TYPES AND VARIABLES */
-struct EvaluatedPrintingParameters {
-    _time: u32,
-}
 
 /* PUBLIC TYPES AND VARIABLES */
 pub struct PrusaSlicerCli;
@@ -105,8 +103,8 @@ impl SlicerInterfaceImpl for PrusaSlicerCli {
                 return evaluation_result;
             }
         };
-        let _evaluated_printing_parameters = read_output_gcode_file(output_file_path.as_str());
-        evaluation_result.price = 42.0;
+        let evaluated_printing_parameters = read_output_gcode_file(output_file_path.as_str());
+        evaluation_result.price = calculate_the_price(evaluated_printing_parameters);
         return evaluation_result;
     }
 }
