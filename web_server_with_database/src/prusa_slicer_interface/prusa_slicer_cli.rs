@@ -7,25 +7,46 @@ use crate::common_utils::global_traits::SlicerInterfaceImpl;
 use crate::common_utils::global_types::{EvaluationResult, SubmittedOrderData};
 
 /* PRIVATE TYPES AND VARIABLES */
+struct EvaluatedPrintingParameters {
+    _time: u32,
+}
 
 /* PUBLIC TYPES AND VARIABLES */
 pub struct PrusaSlicerCli;
 
 /* PRIVATE FUNCTIONS */
-fn slice_the_stl_file(prusa_path: &str, file_name: &str, ws_path: &str) {
-    let output = Command::new(prusa_path)
+fn slice_the_stl_file(prusa_path: &str, file_name: &str, ws_path: &str) -> io::Result<String> {
+    let prusa_config_path = format!("{}/data_files/prusa_config.ini", ws_path);
+    let received_file_path = format!("{}/data_files/received_orders/{}", ws_path, file_name);
+    let processed_file_path = format!(
+        "{}/data_files/processed_orders/{}.gcode",
+        ws_path, file_name
+    );
+
+    match Command::new(prusa_path)
         .arg("-g")
         .arg("--load")
-        .arg(format!("{}/data_files/prusa_config.ini", ws_path))
+        .arg(prusa_config_path)
         .arg("--output")
-        .arg(format!(
-            "{}/data_files/processed_orders/{}.gcode",
-            ws_path, file_name
-        ))
-        .arg(format!("{}/data_files/received_orders/{}", ws_path, file_name))
+        .arg(&processed_file_path)
+        .arg(received_file_path)
         .output()
-        .unwrap();
-    let _ = io::stdout().write_all(&output.stdout);
+    {
+        Ok(_) => {
+            return Ok(processed_file_path);
+        }
+        Err(e) => {
+            eprintln!("Error running Prusa Slicer: {}", e);
+            io::stderr()
+                .write_all(format!("Error running Prusa Slicer: {}", e).as_bytes())
+                .unwrap();
+            return Err(e);
+        }
+    }
+}
+
+fn read_output_gcode_file(_gcode_file_path: &str) -> EvaluatedPrintingParameters {
+    return EvaluatedPrintingParameters { _time: 42 };
 }
 
 /* PUBLIC FUNCTIONS */
@@ -69,14 +90,24 @@ impl SlicerInterfaceImpl for PrusaSlicerCli {
         slicer_path: &str,
         ws_path: &str,
     ) -> EvaluationResult {
-        slice_the_stl_file(slicer_path, &order.file_name, ws_path);
-        EvaluationResult {
+        let mut evaluation_result = EvaluationResult {
             name: order.name.clone(),
             email: order.email.clone(),
             copies_nbr: order.copies_nbr,
             file_name: order.file_name.clone(),
-            price: 42.0,
-        }
+            price: 0.0,
+        };
+
+        let output_file_path = match slice_the_stl_file(slicer_path, &order.file_name, ws_path) {
+            Ok(path) => path,
+            Err(_) => {
+                // You may want to handle the error differently or return a default EvaluationResult
+                return evaluation_result;
+            }
+        };
+        let _evaluated_printing_parameters = read_output_gcode_file(output_file_path.as_str());
+        evaluation_result.price = 42.0;
+        return evaluation_result;
     }
 }
 
