@@ -6,14 +6,14 @@
 
 /* PUBLIC TYPES AND VARIABLES */
 pub struct EvaluatedPrintingParameters {
-    pub _time: u32,
+    pub time: u32,
 }
 
 /* PRIVATE FUNCTIONS */
 
 /* PUBLIC FUNCTIONS */
-pub fn calculate_the_price(_print_params: EvaluatedPrintingParameters) -> f64 {
-    return 42.0;
+pub fn calculate_the_price(print_params: EvaluatedPrintingParameters, nr_copies: u32) -> f64 {
+    return ((print_params.time * nr_copies) as f64) * 0.01;
 }
 
 /* TESTS */

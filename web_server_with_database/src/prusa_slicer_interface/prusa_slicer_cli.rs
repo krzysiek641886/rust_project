@@ -5,7 +5,11 @@ use std::process::Command;
 /* IMPORTS FROM OTHER MODULES */
 use crate::common_utils::global_traits::SlicerInterfaceImpl;
 use crate::common_utils::global_types::{EvaluationResult, SubmittedOrderData};
-use crate::prusa_slicer_interface::prusa_slicer_price_calculator::{EvaluatedPrintingParameters, calculate_the_price};
+use crate::prusa_slicer_interface::prusa_slicer_price_calculator::{
+    calculate_the_price, EvaluatedPrintingParameters,
+};
+use std::fs::File;
+use std::io::{BufRead, BufReader};
 
 /* PRIVATE TYPES AND VARIABLES */
 
@@ -43,8 +47,49 @@ fn slice_the_stl_file(prusa_path: &str, file_name: &str, ws_path: &str) -> io::R
     }
 }
 
-fn read_output_gcode_file(_gcode_file_path: &str) -> EvaluatedPrintingParameters {
-    return EvaluatedPrintingParameters { _time: 42 };
+fn read_output_gcode_file(gcode_file_path: &str) -> EvaluatedPrintingParameters {
+    let file = File::open(gcode_file_path).expect("Failed to open G-code file");
+    let reader = BufReader::new(file);
+
+    let mut estimated_time: u32 = 0;
+
+    for line in reader.lines() {
+        if let Ok(l) = line {
+            if l.starts_with("; estimated printing time (normal mode)") {
+                // Example line: "; estimated printing time (normal mode) = 1h 23m 45s"
+                if let Some(eq_pos) = l.find('=') {
+                    let time_str = l[eq_pos + 1..].trim();
+                    let mut total_seconds: u32 = 0;
+                    let mut current = time_str;
+                    if let Some(h_pos) = current.find('h') {
+                        let (hours, rest) = current.split_at(h_pos);
+                        if let Ok(h) = hours.trim().parse::<u32>() {
+                            total_seconds += h * 3600;
+                        }
+                        current = rest[1..].trim();
+                    }
+                    if let Some(m_pos) = current.find('m') {
+                        let (mins, rest) = current.split_at(m_pos);
+                        if let Ok(m) = mins.trim().parse::<u32>() {
+                            total_seconds += m * 60;
+                        }
+                        current = rest[1..].trim();
+                    }
+                    if let Some(s_pos) = current.find('s') {
+                        let (secs, _) = current.split_at(s_pos);
+                        if let Ok(s) = secs.trim().parse::<u32>() {
+                            total_seconds += s;
+                        }
+                    }
+                    estimated_time = total_seconds;
+                }
+                break;
+            }
+        }
+    }
+    return EvaluatedPrintingParameters {
+        time: estimated_time,
+    };
 }
 
 /* PUBLIC FUNCTIONS */
@@ -104,7 +149,8 @@ impl SlicerInterfaceImpl for PrusaSlicerCli {
             }
         };
         let evaluated_printing_parameters = read_output_gcode_file(output_file_path.as_str());
-        evaluation_result.price = calculate_the_price(evaluated_printing_parameters);
+        evaluation_result.price =
+            calculate_the_price(evaluated_printing_parameters, order.copies_nbr);
         return evaluation_result;
     }
 }
