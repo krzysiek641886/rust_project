@@ -12,6 +12,22 @@ use crate::common_utils::global_types::{EvaluationResult, SubmittedOrderData};
 pub struct PrusaSlicerCli;
 
 /* PRIVATE FUNCTIONS */
+fn slice_the_stl_file(prusa_path: &str, order: &SubmittedOrderData) {
+    let output = Command::new(prusa_path)
+        .arg("-g")
+        .arg("--load")
+        .arg("data_files/prusa_config.ini")
+        .arg("--output")
+        .arg(format!(
+            "data_files/processed_orders/{}.gcode",
+            order.file_name
+        ))
+        .arg(format!("data_files/received_orders/{}", order.file_name))
+        .output()
+        .unwrap();
+
+    let _ = io::stdout().write_all(&output.stdout);
+}
 
 /* PUBLIC FUNCTIONS */
 impl SlicerInterfaceImpl for PrusaSlicerCli {
@@ -51,11 +67,10 @@ impl SlicerInterfaceImpl for PrusaSlicerCli {
     fn evaluate(
         &self,
         order: &SubmittedOrderData,
-        _slicer_path: &str,
+        slicer_path: &str,
         _ws_path: &str,
     ) -> EvaluationResult {
-        // prusa-slicer -g --load prusa_config.ini --output sliced.gcode '/Users/username/Projects/rust_project/web_server_with_database/data_files/received_orders/stl_file.stl'
-
+        slice_the_stl_file(slicer_path, order);
         EvaluationResult {
             name: order.name.clone(),
             email: order.email.clone(),
