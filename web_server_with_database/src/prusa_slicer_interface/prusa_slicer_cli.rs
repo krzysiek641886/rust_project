@@ -12,20 +12,19 @@ use crate::common_utils::global_types::{EvaluationResult, SubmittedOrderData};
 pub struct PrusaSlicerCli;
 
 /* PRIVATE FUNCTIONS */
-fn slice_the_stl_file(prusa_path: &str, order: &SubmittedOrderData) {
+fn slice_the_stl_file(prusa_path: &str, file_name: &str, ws_path: &str) {
     let output = Command::new(prusa_path)
         .arg("-g")
         .arg("--load")
-        .arg("data_files/prusa_config.ini")
+        .arg(format!("{}/data_files/prusa_config.ini", ws_path))
         .arg("--output")
         .arg(format!(
-            "data_files/processed_orders/{}.gcode",
-            order.file_name
+            "{}/data_files/processed_orders/{}.gcode",
+            ws_path, file_name
         ))
-        .arg(format!("data_files/received_orders/{}", order.file_name))
+        .arg(format!("{}/data_files/received_orders/{}", ws_path, file_name))
         .output()
         .unwrap();
-
     let _ = io::stdout().write_all(&output.stdout);
 }
 
@@ -68,9 +67,9 @@ impl SlicerInterfaceImpl for PrusaSlicerCli {
         &self,
         order: &SubmittedOrderData,
         slicer_path: &str,
-        _ws_path: &str,
+        ws_path: &str,
     ) -> EvaluationResult {
-        slice_the_stl_file(slicer_path, order);
+        slice_the_stl_file(slicer_path, &order.file_name, ws_path);
         EvaluationResult {
             name: order.name.clone(),
             email: order.email.clone(),
