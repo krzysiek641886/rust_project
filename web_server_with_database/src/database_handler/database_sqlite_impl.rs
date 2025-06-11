@@ -5,7 +5,7 @@ use std::sync::Mutex;
 
 /* IMPORTS FROM OTHER MODULES */
 use crate::common_utils::global_traits::DatabaseInterfaceImpl;
-use crate::common_utils::global_types::SubmittedOrderData;
+use crate::common_utils::global_types::{EvaluationResult, SubmittedOrderData};
 
 /* PRIVATE TYPES AND VARIABLES */
 /* PUBLIC TYPES AND VARIABLES */
@@ -114,5 +114,10 @@ impl DatabaseInterfaceImpl for DatabaseSQLiteImpl {
             })?);
         }
         Ok(orders)
+    }
+
+    fn add_evaluation_to_db(&self, _eval_result: &EvaluationResult) -> io::Result<()> {
+        // TODO: Implement actual logic to store evaluation result
+        Ok(())
     }
 }

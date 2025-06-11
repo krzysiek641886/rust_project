@@ -82,10 +82,8 @@ pub fn read_orders_from_db() -> Result<Vec<SubmittedOrderData>> {
  * @param _slicer_evaluation_result Evaluation result to be added.
  */
 pub fn add_evaluation_to_db(slicer_evaluation_result: &EvaluationResult) {
-    println!(
-        "add_evaluation_to_db called. To be implemented. Price: {:}",
-        slicer_evaluation_result.price
-    );
+    let database_handler_impl = DB_HANDLER_STATE.db_impl.lock().unwrap();
+    let _ = database_handler_impl.add_evaluation_to_db(slicer_evaluation_result);
 }
 
 /**
