@@ -128,4 +128,32 @@ mod tests {
         };
         assert!(add_form_submission_to_db(&order) == true);
     }
+
+    #[test]
+    fn test_add_evaluation_to_db() {
+        reset_state_and_setup_mocked_interface();
+        let evaluation = EvaluationResult {
+            name: "John Doe".to_string(),
+            email: "john.doe@example.com".to_string(),
+            copies_nbr: 1,
+            file_name: "file.stl".to_string(),
+            price: 100.0,
+        };
+        add_evaluation_to_db(&evaluation);
+        // No assertion as the mock does not return a value, just ensure no panic
+    }
+
+    #[test]
+    fn test_remove_order_from_db() {
+        reset_state_and_setup_mocked_interface();
+        let order = SubmittedOrderData {
+            name: "Jane Smith".to_string(),
+            email: "jane.smith@example.com".to_string(),
+            copies_nbr: 2,
+            file_name: "model.stl".to_string(),
+            nbr_of_chunks: 10,
+        };
+        remove_order_from_db(&order);
+        // No assertion as the mock does not return a value, just ensure no panic
+    }
 }
