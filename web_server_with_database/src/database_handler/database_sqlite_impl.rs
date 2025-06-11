@@ -14,19 +14,47 @@ pub struct DatabaseSQLiteImpl {
 }
 
 /* PRIVATE FUNCTIONS */
+fn write_sql_cmd_to_db<P: rusqlite::Params>(
+    db_conn: &Connection,
+    sql: &str,
+    params: P,
+) -> io::Result<()> {
+    match db_conn.execute(sql, params) {
+        Ok(_) => Ok(()),
+        Err(_) => Err(io::Error::new(
+            io::ErrorKind::Other,
+            "Failed to write to database",
+        )),
+    }
+}
+
 fn write_submission_to_db(
     db_conn: &Connection,
     name: &str,
     email: &str,
     copes_nbr: &str,
     file_name: &str,
-) -> bool {
-    db_conn
-        .execute(
-            "INSERT INTO Orders (name, email, copies_nbr, file_name) VALUES (?1, ?2, ?3, ?4)",
-            &[&name, &email, copes_nbr, &file_name],
-        )
-        .is_ok()
+) -> io::Result<()> {
+    write_sql_cmd_to_db(
+        db_conn,
+        "INSERT INTO Orders (name, email, copies_nbr, file_name) VALUES (?1, ?2, ?3, ?4)",
+        &[&name, &email, copes_nbr, &file_name],
+    )
+}
+
+fn write_evaluation_to_db(
+    db_conn: &Connection,
+    name: &str,
+    email: &str,
+    copes_nbr: &str,
+    file_name: &str,
+    price: &str,
+) -> io::Result<()> {
+    write_sql_cmd_to_db(
+        db_conn,
+        "INSERT INTO Evaulations (name, email, copies_nbr, file_name, price) VALUES (?1, ?2, ?3, ?4, ?5)",
+        &[&name, &email, copes_nbr, &file_name, price],
+    )
 }
 
 /* PUBLIC FUNCTIONS */
@@ -42,6 +70,15 @@ impl DatabaseInterfaceImpl for DatabaseSQLiteImpl {
             [],
         )
         .expect("Failed to create Orders table");
+        conn.execute(
+            "create table if not exists Evaulations (
+            name text not null,
+            email text not null,
+            copies_nbr integer not null,
+            file_name text not null)",
+            [],
+        )
+        .expect("Failed to create Evaulations table");
         let mut db_conn = self.db_conn.lock().unwrap();
         *db_conn = Some(conn);
         return Ok(());
@@ -61,19 +98,13 @@ impl DatabaseInterfaceImpl for DatabaseSQLiteImpl {
                 "Database connection is not initialized",
             )
         })?;
-        if !write_submission_to_db(
+        return write_submission_to_db(
             conn,
             form_fields.name.as_str(),
             form_fields.email.as_str(),
             form_fields.copies_nbr.to_string().as_str(),
             form_fields.file_name.as_str(),
-        ) {
-            return Err(io::Error::new(
-                io::ErrorKind::Other,
-                "Failed to write to database",
-            ));
-        }
-        Ok(())
+        );
     }
 
     fn read_orders_from_db(&self) -> io::Result<Vec<SubmittedOrderData>> {
@@ -116,9 +147,22 @@ impl DatabaseInterfaceImpl for DatabaseSQLiteImpl {
         Ok(orders)
     }
 
-    fn add_evaluation_to_db(&self, _eval_result: &EvaluationResult) -> io::Result<()> {
-        // TODO: Implement actual logic to store evaluation result
-        Ok(())
+    fn add_evaluation_to_db(&self, eval_result: &EvaluationResult) -> io::Result<()> {
+        let db_conn = self.db_conn.lock().unwrap();
+        let conn = db_conn.as_ref().ok_or_else(|| {
+            io::Error::new(
+                io::ErrorKind::NotConnected,
+                "Database connection is not initialized",
+            )
+        })?;
+        return write_evaluation_to_db(
+            conn,
+            eval_result.name.as_str(),
+            eval_result.email.as_str(),
+            eval_result.copies_nbr.to_string().as_str(),
+            eval_result.file_name.as_str(),
+            &eval_result.price.to_string(),
+        );
     }
 
     fn remove_order_from_db(&self, _form_fields: &SubmittedOrderData) -> io::Result<()> {
