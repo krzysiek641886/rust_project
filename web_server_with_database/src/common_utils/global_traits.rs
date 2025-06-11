@@ -18,6 +18,7 @@ pub trait DatabaseInterfaceImpl: Send + Sync {
     fn add_form_submission_to_db(&self, form_fields: SubmittedOrderData) -> Result<()>;
     fn read_orders_from_db(&self) -> Result<Vec<SubmittedOrderData>>;
     fn add_evaluation_to_db(&self, eval_result: &EvaluationResult) -> Result<()>;
+    fn remove_order_from_db(&self, form_fields: &SubmittedOrderData) -> Result<()>;
 }
 
 pub trait WebSocketInterfaceImpl {

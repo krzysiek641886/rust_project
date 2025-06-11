@@ -120,4 +120,9 @@ impl DatabaseInterfaceImpl for DatabaseSQLiteImpl {
         // TODO: Implement actual logic to store evaluation result
         Ok(())
     }
+
+    fn remove_order_from_db(&self, _form_fields: &SubmittedOrderData) -> io::Result<()> {
+        // TODO: Implement actual logic to remove order from database
+        Ok(())
+    }
 }

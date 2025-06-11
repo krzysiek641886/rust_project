@@ -29,4 +29,8 @@ impl DatabaseInterfaceImpl for DatabaseMockImpl {
     fn add_evaluation_to_db(&self, _eval_result: &EvaluationResult) -> io::Result<()> {
         Ok(())
     }
+
+    fn remove_order_from_db(&self, _form_fields: &SubmittedOrderData) -> io::Result<()> {
+        Ok(())
+    }
 }
