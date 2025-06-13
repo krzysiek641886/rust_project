@@ -18,14 +18,14 @@ struct WebSocketSession {
     pub my_addr: Option<Addr<WebSocketSession>>,
     submitted_form: Option<SubmittedOrderData>,
     chunks_received: u32,
-    pub add_form_submission_to_db_cb: fn(&SubmittedOrderData) -> bool,
     pub evaluate_order_cb: fn(&SubmittedOrderData) -> EvaluationResult,
+    pub add_evaluation_to_db_cb: fn(&EvaluationResult) -> io::Result<()>,
 }
 
 /* PUBLIC TYPES AND VARIABLES */
 pub struct PriceEvaluationWebSocketImpl {
-    pub add_form_submission_to_db_cb: fn(&SubmittedOrderData) -> bool,
     pub evaluate_order_cb: fn(&SubmittedOrderData) -> EvaluationResult,
+    pub add_evaluation_to_db_cb: fn(&EvaluationResult) -> io::Result<()>,
 }
 
 /* PRIVATE FUNCTIONS */
@@ -86,10 +86,8 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WebSocketSession 
                 // Parse the text message into a SubmittedOrderData struct
                 match serde_json::from_str::<SubmittedOrderData>(&text) {
                     Ok(data) => {
-                        if (self.add_form_submission_to_db_cb)(&data) {
-                            self.submitted_form = Some(data);
-                            return;
-                        }
+                        self.submitted_form = Some(data);
+                        return;
                     }
                     _ => {}
                 }
@@ -123,6 +121,8 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WebSocketSession 
                     }
                     if self.chunks_received == total_chunks {
                         let result = (self.evaluate_order_cb)(form);
+                        // TODO: Verify result
+                        let _ = (self.add_evaluation_to_db_cb)(&result);
                         // Serialize the evaluation result to a JSON string
                         let json_result = serialize_evaluation_result(result);
                         // Send the evaluation result back to the client
@@ -154,7 +154,7 @@ impl WebSocketInterfaceImpl for PriceEvaluationWebSocketImpl {
                 my_addr: None,
                 submitted_form: None,
                 chunks_received: 0,
-                add_form_submission_to_db_cb: self.add_form_submission_to_db_cb,
+                add_evaluation_to_db_cb: self.add_evaluation_to_db_cb,
                 evaluate_order_cb: self.evaluate_order_cb,
             },
             &req,

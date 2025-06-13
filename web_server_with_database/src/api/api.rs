@@ -8,9 +8,7 @@ use std::sync::Mutex;
 use crate::api::web_socket_impl::PriceEvaluationWebSocketImpl;
 use crate::common_utils::global_traits::WebSocketInterfaceImpl;
 use crate::common_utils::global_types::{EvaluationResult, SubmittedOrderData};
-use crate::database_handler::{
-    add_evaluation_to_db, add_form_submission_to_db, read_orders_from_db, remove_order_from_db,
-};
+use crate::database_handler::{add_evaluation_to_db, read_orders_from_db};
 use crate::prusa_slicer_interface::get_prusa_slicer_evaluation;
 
 /* PRIVATE TYPES AND VARIABLES */
@@ -23,7 +21,7 @@ lazy_static! {
     static ref API_HANDLER_STATE: State = State {
         app_init_status: Mutex::new(false),
         websocket_session: Mutex::new(PriceEvaluationWebSocketImpl {
-            add_form_submission_to_db_cb: add_form_submission_to_db,
+            add_evaluation_to_db_cb: add_evaluation_to_db,
             evaluate_order_cb: evaluate_order,
         }),
     };
@@ -33,10 +31,7 @@ lazy_static! {
 
 /* PRIVATE FUNCTIONS */
 fn evaluate_order(form_fields: &SubmittedOrderData) -> EvaluationResult {
-    let eval_result = get_prusa_slicer_evaluation(&form_fields);
-    add_evaluation_to_db(&eval_result);
-    remove_order_from_db(&form_fields);
-    return eval_result;
+    return get_prusa_slicer_evaluation(&form_fields);
 }
 
 /* PUBLIC FUNCTIONS */
@@ -100,16 +95,18 @@ pub async fn get_orders_handler() -> impl Responder {
         email: String,
         copies_nbr: u32,
         file_name: String,
+        price: f64,
     }
     match read_orders_from_db() {
         Ok(orders) => {
             let orders_json: Vec<Order> = orders
                 .into_iter()
-                .map(|order: SubmittedOrderData| Order {
+                .map(|order: EvaluationResult| Order {
                     name: order.name,
                     email: order.email,
                     copies_nbr: order.copies_nbr,
                     file_name: order.file_name,
+                    price: order.price,
                 })
                 .collect();
             HttpResponse::Ok().json(orders_json)

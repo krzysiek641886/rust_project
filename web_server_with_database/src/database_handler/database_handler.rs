@@ -5,7 +5,7 @@ use std::sync::Mutex;
 
 /* IMPORTS FROM OTHER MODULES */
 use crate::common_utils::global_traits::DatabaseInterfaceImpl;
-use crate::common_utils::global_types::{EvaluationResult, SubmittedOrderData};
+use crate::common_utils::global_types::EvaluationResult;
 use crate::database_handler::database_sqlite_impl::DatabaseSQLiteImpl;
 
 /* PRIVATE TYPES AND VARIABLES */
@@ -43,23 +43,6 @@ pub fn initialize_db(db_name: &str) {
 }
 
 /**
- * @brief Adds a form submission to the database.
- *
- * This function validates the form submission data and writes it to the database.
- *
- * @param form_fields Submitted order data.
- * @return bool True if the submission was successfully added, false otherwise.
- */
-pub fn add_form_submission_to_db(form_fields: &SubmittedOrderData) -> bool {
-    let database_handler_impl = DB_HANDLER_STATE.db_impl.lock().unwrap();
-    let fields_cpy = form_fields.clone();
-    match database_handler_impl.add_form_submission_to_db(fields_cpy) {
-        Ok(_) => return true,
-        Err(_) => return false,
-    }
-}
-
-/**
  * @brief Reads all orders from the database.
  *
  * This function retrieves all orders stored in the database and returns them
@@ -68,7 +51,7 @@ pub fn add_form_submission_to_db(form_fields: &SubmittedOrderData) -> bool {
  * @return Result<Vec<SubmittedOrderData>> A result containing a vector of orders
  *         if successful, or an error if the operation fails.
  */
-pub fn read_orders_from_db() -> Result<Vec<SubmittedOrderData>> {
+pub fn read_orders_from_db() -> Result<Vec<EvaluationResult>> {
     let database_handler_impl = DB_HANDLER_STATE.db_impl.lock().unwrap();
     return database_handler_impl.read_orders_from_db();
 }
@@ -81,21 +64,9 @@ pub fn read_orders_from_db() -> Result<Vec<SubmittedOrderData>> {
  *
  * @param _slicer_evaluation_result Evaluation result to be added.
  */
-pub fn add_evaluation_to_db(slicer_evaluation_result: &EvaluationResult) {
+pub fn add_evaluation_to_db(slicer_evaluation_result: &EvaluationResult) -> Result<()> {
     let database_handler_impl = DB_HANDLER_STATE.db_impl.lock().unwrap();
-    let _ = database_handler_impl.add_evaluation_to_db(slicer_evaluation_result);
-}
-
-/**
- * @brief Removes an order from the database.
- *
- * This function deletes an order from the database. Currently, it is a placeholder.
- *
- * @param _order Order to be removed.
- */
-pub fn remove_order_from_db(order: &SubmittedOrderData) {
-    let database_handler_impl = DB_HANDLER_STATE.db_impl.lock().unwrap();
-    let _ = database_handler_impl.remove_order_from_db(order);
+    return database_handler_impl.add_evaluation_to_db(slicer_evaluation_result);
 }
 
 /* TESTS */
@@ -117,19 +88,6 @@ mod tests {
     }
 
     #[test]
-    fn test_add_form_submission_to_db() {
-        reset_state_and_setup_mocked_interface();
-        let order = SubmittedOrderData {
-            name: "John Doe".to_string(),
-            email: "john.doe@example.com".to_string(),
-            copies_nbr: 5,
-            file_name: "file.stl".to_string(),
-            nbr_of_chunks: 42,
-        };
-        assert!(add_form_submission_to_db(&order) == true);
-    }
-
-    #[test]
     fn test_add_evaluation_to_db() {
         reset_state_and_setup_mocked_interface();
         let evaluation = EvaluationResult {
@@ -139,21 +97,8 @@ mod tests {
             file_name: "file.stl".to_string(),
             price: 100.0,
         };
-        add_evaluation_to_db(&evaluation);
-        // No assertion as the mock does not return a value, just ensure no panic
-    }
-
-    #[test]
-    fn test_remove_order_from_db() {
-        reset_state_and_setup_mocked_interface();
-        let order = SubmittedOrderData {
-            name: "Jane Smith".to_string(),
-            email: "jane.smith@example.com".to_string(),
-            copies_nbr: 2,
-            file_name: "model.stl".to_string(),
-            nbr_of_chunks: 10,
-        };
-        remove_order_from_db(&order);
+        let result = add_evaluation_to_db(&evaluation);
+        assert!(result.is_ok());
         // No assertion as the mock does not return a value, just ensure no panic
     }
 }

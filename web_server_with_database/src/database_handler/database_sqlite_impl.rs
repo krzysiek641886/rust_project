@@ -5,7 +5,7 @@ use std::sync::Mutex;
 
 /* IMPORTS FROM OTHER MODULES */
 use crate::common_utils::global_traits::DatabaseInterfaceImpl;
-use crate::common_utils::global_types::{EvaluationResult, SubmittedOrderData};
+use crate::common_utils::global_types::EvaluationResult;
 
 /* PRIVATE TYPES AND VARIABLES */
 /* PUBLIC TYPES AND VARIABLES */
@@ -28,20 +28,6 @@ fn write_sql_cmd_to_db<P: rusqlite::Params>(
     }
 }
 
-fn write_submission_to_db(
-    db_conn: &Connection,
-    name: &str,
-    email: &str,
-    copes_nbr: &str,
-    file_name: &str,
-) -> io::Result<()> {
-    write_sql_cmd_to_db(
-        db_conn,
-        "INSERT INTO Orders (name, email, copies_nbr, file_name) VALUES (?1, ?2, ?3, ?4)",
-        &[&name, &email, copes_nbr, &file_name],
-    )
-}
-
 fn write_evaluation_to_db(
     db_conn: &Connection,
     name: &str,
@@ -52,7 +38,7 @@ fn write_evaluation_to_db(
 ) -> io::Result<()> {
     write_sql_cmd_to_db(
         db_conn,
-        "INSERT INTO Evaulations (name, email, copies_nbr, file_name, price) VALUES (?1, ?2, ?3, ?4, ?5)",
+        "INSERT INTO Orders (name, email, copies_nbr, file_name, price) VALUES (?1, ?2, ?3, ?4, ?5)",
         &[&name, &email, copes_nbr, &file_name, price],
     )
 }
@@ -66,48 +52,17 @@ impl DatabaseInterfaceImpl for DatabaseSQLiteImpl {
             name text not null,
             email text not null,
             copies_nbr integer not null,
-            file_name text not null)",
+            file_name text not null,
+            price text not null)",
             [],
         )
         .expect("Failed to create Orders table");
-        conn.execute(
-            "create table if not exists Evaulations (
-            name text not null,
-            email text not null,
-            copies_nbr integer not null,
-            file_name text not null)",
-            [],
-        )
-        .expect("Failed to create Evaulations table");
         let mut db_conn = self.db_conn.lock().unwrap();
         *db_conn = Some(conn);
         return Ok(());
     }
 
-    fn add_form_submission_to_db(&self, form_fields: SubmittedOrderData) -> io::Result<()> {
-        if form_fields.copies_nbr < 1 {
-            return Err(io::Error::new(
-                io::ErrorKind::InvalidInput,
-                "Invalid number of copies",
-            ));
-        }
-        let db_conn = self.db_conn.lock().unwrap();
-        let conn = db_conn.as_ref().ok_or_else(|| {
-            io::Error::new(
-                io::ErrorKind::NotConnected,
-                "Database connection is not initialized",
-            )
-        })?;
-        return write_submission_to_db(
-            conn,
-            form_fields.name.as_str(),
-            form_fields.email.as_str(),
-            form_fields.copies_nbr.to_string().as_str(),
-            form_fields.file_name.as_str(),
-        );
-    }
-
-    fn read_orders_from_db(&self) -> io::Result<Vec<SubmittedOrderData>> {
+    fn read_orders_from_db(&self) -> io::Result<Vec<EvaluationResult>> {
         let db_conn = self.db_conn.lock().unwrap();
         let conn = db_conn.as_ref().ok_or_else(|| {
             io::Error::new(
@@ -117,7 +72,7 @@ impl DatabaseInterfaceImpl for DatabaseSQLiteImpl {
         })?;
 
         let mut stmt = conn
-            .prepare("SELECT name, email, copies_nbr, file_name FROM Orders")
+            .prepare("SELECT name, email, copies_nbr, file_name, price FROM Orders")
             .map_err(|e| {
                 io::Error::new(
                     io::ErrorKind::Other,
@@ -126,12 +81,12 @@ impl DatabaseInterfaceImpl for DatabaseSQLiteImpl {
             })?;
         let order_iter = stmt
             .query_map([], |row| {
-                Ok(SubmittedOrderData {
+                Ok(EvaluationResult {
                     name: row.get(0)?,
                     email: row.get(1)?,
                     copies_nbr: row.get(2)?,
                     file_name: row.get(3)?,
-                    nbr_of_chunks: 0,
+                    price: 42.42, // Placeholder for price, should be replaced with actual logic
                 })
             })
             .map_err(|e| {
@@ -163,10 +118,5 @@ impl DatabaseInterfaceImpl for DatabaseSQLiteImpl {
             eval_result.file_name.as_str(),
             &eval_result.price.to_string(),
         );
-    }
-
-    fn remove_order_from_db(&self, _form_fields: &SubmittedOrderData) -> io::Result<()> {
-        // TODO: Implement actual logic to remove order from database
-        Ok(())
     }
 }
