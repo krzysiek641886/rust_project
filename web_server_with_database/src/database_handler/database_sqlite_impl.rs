@@ -14,11 +14,16 @@ pub struct DatabaseSQLiteImpl {
 }
 
 /* PRIVATE FUNCTIONS */
-fn write_sql_cmd_to_db<P: rusqlite::Params>(
+fn write_evaluation_to_db(
     db_conn: &Connection,
-    sql: &str,
-    params: P,
+    name: &str,
+    email: &str,
+    copies_nbr: u32,
+    file_name: &str,
+    price: f64,
 ) -> io::Result<()> {
+    let params = rusqlite::params![name, email, copies_nbr, file_name, price];
+    let sql = "INSERT INTO Orders (name, email, copies_nbr, file_name, price) VALUES (?1, ?2, ?3, ?4, ?5)";
     match db_conn.execute(sql, params) {
         Ok(_) => Ok(()),
         Err(_) => Err(io::Error::new(
@@ -26,21 +31,6 @@ fn write_sql_cmd_to_db<P: rusqlite::Params>(
             "Failed to write to database",
         )),
     }
-}
-
-fn write_evaluation_to_db(
-    db_conn: &Connection,
-    name: &str,
-    email: &str,
-    copes_nbr: &str,
-    file_name: &str,
-    price: &str,
-) -> io::Result<()> {
-    write_sql_cmd_to_db(
-        db_conn,
-        "INSERT INTO Orders (name, email, copies_nbr, file_name, price) VALUES (?1, ?2, ?3, ?4, ?5)",
-        &[&name, &email, copes_nbr, &file_name, price],
-    )
 }
 
 /* PUBLIC FUNCTIONS */
@@ -53,7 +43,7 @@ impl DatabaseInterfaceImpl for DatabaseSQLiteImpl {
             email text not null,
             copies_nbr integer not null,
             file_name text not null,
-            price text not null)",
+            price REAL not null)",
             [],
         )
         .expect("Failed to create Orders table");
@@ -86,7 +76,7 @@ impl DatabaseInterfaceImpl for DatabaseSQLiteImpl {
                     email: row.get(1)?,
                     copies_nbr: row.get(2)?,
                     file_name: row.get(3)?,
-                    price: 42.42, // Placeholder for price, should be replaced with actual logic
+                    price: row.get(4)?,
                 })
             })
             .map_err(|e| {
@@ -114,9 +104,9 @@ impl DatabaseInterfaceImpl for DatabaseSQLiteImpl {
             conn,
             eval_result.name.as_str(),
             eval_result.email.as_str(),
-            eval_result.copies_nbr.to_string().as_str(),
+            eval_result.copies_nbr,
             eval_result.file_name.as_str(),
-            &eval_result.price.to_string(),
+            eval_result.price,
         );
     }
 }
