@@ -28,7 +28,7 @@ pub struct PriceEvaluationWebSocketImpl {
     pub add_evaluation_to_db_cb: fn(&EvaluationResult) -> io::Result<()>,
 }
 
-/* PRIVATE FUNCTIONS */
+/* HELPER FUNCTIONS */
 fn append_the_file(filename: &String, chunks_received: &u32, bin: Bytes) -> io::Result<u32> {
     let file_path = Path::new("data_files/received_orders/").join(filename);
     if let Some(parent) = file_path.parent() {
@@ -62,6 +62,7 @@ fn serialize_evaluation_result(eval_result: EvaluationResult) -> String {
     .to_string()
 }
 
+/* PRIVATE FUNCTIONS */
 impl Actor for WebSocketSession {
     type Context = ws::WebsocketContext<Self>;
 
@@ -71,10 +72,95 @@ impl Actor for WebSocketSession {
 }
 
 impl WebSocketSession {
-    // Private helper function to reset the session state
+    // Private function to reset the session state
     fn reset_session(&mut self) {
         self.submitted_form = None;
         self.chunks_received = 0;
+    }
+
+    fn close_session(&mut self, ctx: &mut ws::WebsocketContext<Self>, error: Option<&str>) {
+        self.reset_session();
+        let mut close_reason = CloseReason {
+            code: ws::CloseCode::Normal,
+            description: Some("Session closed".to_string()),
+        };
+        if let Some(err) = error {
+            close_reason.code = ws::CloseCode::Error;
+            close_reason.description = Some(format!("Session closed due to an error: {}", err));
+        }
+        ctx.close(Some(close_reason));
+    }
+
+    // Private function for handling the Text payload and parsing it into a SubmittedOrderData struct
+    fn handle_text_payload(&mut self, text: String, ctx: &mut ws::WebsocketContext<Self>) {
+        match serde_json::from_str::<SubmittedOrderData>(&text) {
+            Ok(data) => {
+                self.submitted_form = Some(data);
+                return;
+            }
+            _ => self.close_session(
+                ctx,
+                Some("Failed to parse SubmittedOrderData from text payload"),
+            ),
+        }
+    }
+
+    fn process_stl_model_when_all_chunks_received(
+        &mut self,
+        ctx: &mut ws::WebsocketContext<Self>,
+        form: SubmittedOrderData,
+    ) {
+        let evaluate_order_function = self.evaluate_order_cb;
+        let add_evaluation_to_db_function = self.add_evaluation_to_db_cb;
+
+        let order_evaluation_result = evaluate_order_function(&form);
+        if let Err(e) = add_evaluation_to_db_function(&order_evaluation_result) {
+            println!("Failed to write evaluation to database. Error: {:?}", e);
+            self.close_session(ctx, Some(&format!("Internal database error")));
+            return;
+        }
+        // Serialize the evaluation result to a JSON string
+        let json_result = serialize_evaluation_result(order_evaluation_result);
+        // Send the evaluation result back to the client
+        ctx.text(json_result);
+        // Reset the session state after processing
+        self.reset_session();
+    }
+
+    // Private function for handling the Binary payload and appending the file
+    fn handle_binary_payload(
+        &mut self,
+        bin: Bytes,
+        ctx: &mut ws::WebsocketContext<Self>,
+        form: SubmittedOrderData,
+    ) {
+        let filename = &form.file_name;
+        let total_chunks = form.nbr_of_chunks;
+        if self.chunks_received >= total_chunks {
+            self.close_session(
+                ctx,
+                Some(&format!(
+                    "Incorrect number of chunks received {} out of {}",
+                    self.chunks_received, total_chunks
+                )),
+            );
+            return;
+        }
+        if let Ok(chunks_received) = append_the_file(filename, &self.chunks_received, bin) {
+            self.chunks_received = chunks_received;
+        } else {
+            self.close_session(
+                ctx,
+                Some(&format!(
+                    "Internal error while processing the file chunk {}",
+                    self.chunks_received + 1
+                )),
+            );
+            return;
+        }
+        if self.chunks_received == total_chunks {
+            self.process_stl_model_when_all_chunks_received(ctx, form);
+        }
     }
 }
 
@@ -82,58 +168,14 @@ impl WebSocketSession {
 impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WebSocketSession {
     fn handle(&mut self, msg: Result<ws::Message, ws::ProtocolError>, ctx: &mut Self::Context) {
         match msg {
-            Ok(ws::Message::Text(text)) => {
-                // Parse the text message into a SubmittedOrderData struct
-                match serde_json::from_str::<SubmittedOrderData>(&text) {
-                    Ok(data) => {
-                        self.submitted_form = Some(data);
-                        return;
-                    }
-                    _ => {}
-                }
-                self.reset_session();
-                let close_reason = CloseReason {
-                    code: ws::CloseCode::Invalid,
-                    description: None,
-                };
-                ctx.close(Some(close_reason));
-            }
+            Ok(ws::Message::Text(text)) => self.handle_text_payload(text.to_string(), ctx),
             Ok(ws::Message::Binary(bin)) => {
-                if let Some(ref form) = self.submitted_form {
-                    let filename = &form.file_name;
-                    let total_chunks = form.nbr_of_chunks;
-                    if self.chunks_received >= total_chunks {
-                        panic!("Incorrect number of chunks. TBA handling");
-                    }
-                    match append_the_file(filename, &self.chunks_received, bin) {
-                        Ok(chunks_received) => {
-                            self.chunks_received = chunks_received;
-                        }
-                        Err(_e) => {
-                            self.reset_session();
-                            let close_reason = CloseReason {
-                                code: ws::CloseCode::Error,
-                                description: None,
-                            };
-                            ctx.close(Some(close_reason));
-                            return;
-                        }
-                    }
-                    if self.chunks_received == total_chunks {
-                        let result = (self.evaluate_order_cb)(form);
-                        // TODO: Verify result
-                        let _ = (self.add_evaluation_to_db_cb)(&result);
-                        // Serialize the evaluation result to a JSON string
-                        let json_result = serialize_evaluation_result(result);
-                        // Send the evaluation result back to the client
-                        ctx.text(json_result);
-                        // Reset the session state after processing
-                        self.reset_session();
-                    }
-                } else {
-                    println!("No submitted form data available to get filename and total_chunks.");
+                if self.submitted_form.is_none() {
+                    ctx.text("No submitted form data available to process the STL model.");
                     return;
                 }
+                let form = self.submitted_form.clone().unwrap();
+                self.handle_binary_payload(bin, ctx, form);
             }
             _ => {
                 ctx.text("Unsupported message type. Only text and binary messages are supported.");
