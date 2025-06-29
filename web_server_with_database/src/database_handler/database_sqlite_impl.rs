@@ -5,7 +5,7 @@ use std::sync::Mutex;
 
 /* IMPORTS FROM OTHER MODULES */
 use crate::common_utils::global_traits::DatabaseInterfaceImpl;
-use crate::common_utils::global_types::SubmittedOrderData;
+use crate::common_utils::global_types::EvaluationResult;
 
 /* PRIVATE TYPES AND VARIABLES */
 /* PUBLIC TYPES AND VARIABLES */
@@ -14,19 +14,23 @@ pub struct DatabaseSQLiteImpl {
 }
 
 /* PRIVATE FUNCTIONS */
-fn write_submission_to_db(
+fn write_evaluation_to_db(
     db_conn: &Connection,
     name: &str,
     email: &str,
-    copes_nbr: &str,
+    copies_nbr: u32,
     file_name: &str,
-) -> bool {
-    db_conn
-        .execute(
-            "INSERT INTO Orders (name, email, copies_nbr, file_name) VALUES (?1, ?2, ?3, ?4)",
-            &[&name, &email, copes_nbr, &file_name],
-        )
-        .is_ok()
+    price: f64,
+) -> io::Result<()> {
+    let params = rusqlite::params![name, email, copies_nbr, file_name, price];
+    let sql = "INSERT INTO Orders (name, email, copies_nbr, file_name, price) VALUES (?1, ?2, ?3, ?4, ?5)";
+    match db_conn.execute(sql, params) {
+        Ok(_) => Ok(()),
+        Err(_) => Err(io::Error::new(
+            io::ErrorKind::Other,
+            "Failed to write to database",
+        )),
+    }
 }
 
 /* PUBLIC FUNCTIONS */
@@ -38,7 +42,8 @@ impl DatabaseInterfaceImpl for DatabaseSQLiteImpl {
             name text not null,
             email text not null,
             copies_nbr integer not null,
-            file_name text not null)",
+            file_name text not null,
+            price REAL not null)",
             [],
         )
         .expect("Failed to create Orders table");
@@ -47,36 +52,7 @@ impl DatabaseInterfaceImpl for DatabaseSQLiteImpl {
         return Ok(());
     }
 
-    fn add_form_submission_to_db(&self, form_fields: SubmittedOrderData) -> io::Result<()> {
-        if form_fields.copies_nbr < 1 {
-            return Err(io::Error::new(
-                io::ErrorKind::InvalidInput,
-                "Invalid number of copies",
-            ));
-        }
-        let db_conn = self.db_conn.lock().unwrap();
-        let conn = db_conn.as_ref().ok_or_else(|| {
-            io::Error::new(
-                io::ErrorKind::NotConnected,
-                "Database connection is not initialized",
-            )
-        })?;
-        if !write_submission_to_db(
-            conn,
-            form_fields.name.as_str(),
-            form_fields.email.as_str(),
-            form_fields.copies_nbr.to_string().as_str(),
-            form_fields.file_name.as_str(),
-        ) {
-            return Err(io::Error::new(
-                io::ErrorKind::Other,
-                "Failed to write to database",
-            ));
-        }
-        Ok(())
-    }
-
-    fn read_orders_from_db(&self) -> io::Result<Vec<SubmittedOrderData>> {
+    fn read_orders_from_db(&self) -> io::Result<Vec<EvaluationResult>> {
         let db_conn = self.db_conn.lock().unwrap();
         let conn = db_conn.as_ref().ok_or_else(|| {
             io::Error::new(
@@ -86,7 +62,7 @@ impl DatabaseInterfaceImpl for DatabaseSQLiteImpl {
         })?;
 
         let mut stmt = conn
-            .prepare("SELECT name, email, copies_nbr, file_name FROM Orders")
+            .prepare("SELECT name, email, copies_nbr, file_name, price FROM Orders")
             .map_err(|e| {
                 io::Error::new(
                     io::ErrorKind::Other,
@@ -95,12 +71,12 @@ impl DatabaseInterfaceImpl for DatabaseSQLiteImpl {
             })?;
         let order_iter = stmt
             .query_map([], |row| {
-                Ok(SubmittedOrderData {
+                Ok(EvaluationResult {
                     name: row.get(0)?,
                     email: row.get(1)?,
                     copies_nbr: row.get(2)?,
                     file_name: row.get(3)?,
-                    nbr_of_chunks: 0,
+                    price: row.get(4)?,
                 })
             })
             .map_err(|e| {
@@ -114,5 +90,23 @@ impl DatabaseInterfaceImpl for DatabaseSQLiteImpl {
             })?);
         }
         Ok(orders)
+    }
+
+    fn add_evaluation_to_db(&self, eval_result: &EvaluationResult) -> io::Result<()> {
+        let db_conn = self.db_conn.lock().unwrap();
+        let conn = db_conn.as_ref().ok_or_else(|| {
+            io::Error::new(
+                io::ErrorKind::NotConnected,
+                "Database connection is not initialized",
+            )
+        })?;
+        return write_evaluation_to_db(
+            conn,
+            eval_result.name.as_str(),
+            eval_result.email.as_str(),
+            eval_result.copies_nbr,
+            eval_result.file_name.as_str(),
+            eval_result.price,
+        );
     }
 }

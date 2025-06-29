@@ -69,7 +69,7 @@ lazy_static! {
 fn initialize_modules_with_cmd_arguments(args: Args) {
     // This consumes the args struct and initializes the global state. No other use of args is allowed after this point.
     initialize_db(&args.db_name);
-    initialize_prusa_slicer_if(&args.system, &args.prusa_path)
+    initialize_prusa_slicer_if(&args.ws_path, &args.prusa_path)
         .expect("Failed to initialize Prusa Slicer interface");
     let mut ws_path_lock = MAIN_STATE.ws_path.lock().unwrap();
     *ws_path_lock = args.ws_path.to_string();

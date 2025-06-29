@@ -3,7 +3,7 @@ use std::io;
 
 /* IMPORTS FROM OTHER MODULES */
 use crate::common_utils::global_traits::DatabaseInterfaceImpl;
-use crate::common_utils::global_types::SubmittedOrderData;
+use crate::common_utils::global_types::EvaluationResult;
 
 /* PRIVATE TYPES AND VARIABLES */
 /* PUBLIC TYPES AND VARIABLES */
@@ -17,12 +17,12 @@ impl DatabaseInterfaceImpl for DatabaseMockImpl {
         return Ok(());
     }
 
-    fn add_form_submission_to_db(&self, _form_fields: SubmittedOrderData) -> io::Result<()> {
-        return Ok(());
-    }
-
-    fn read_orders_from_db(&self) -> io::Result<Vec<SubmittedOrderData>> {
+    fn read_orders_from_db(&self) -> io::Result<Vec<EvaluationResult>> {
         let orders = Vec::new();
         return Ok(orders);
+    }
+
+    fn add_evaluation_to_db(&self, _eval_result: &EvaluationResult) -> io::Result<()> {
+        Ok(())
     }
 }

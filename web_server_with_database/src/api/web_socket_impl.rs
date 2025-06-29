@@ -18,22 +18,27 @@ struct WebSocketSession {
     pub my_addr: Option<Addr<WebSocketSession>>,
     submitted_form: Option<SubmittedOrderData>,
     chunks_received: u32,
-    pub add_form_submission_to_db_cb: fn(&SubmittedOrderData) -> bool,
     pub evaluate_order_cb: fn(&SubmittedOrderData) -> EvaluationResult,
+    pub add_evaluation_to_db_cb: fn(&EvaluationResult) -> io::Result<()>,
 }
 
 /* PUBLIC TYPES AND VARIABLES */
 pub struct PriceEvaluationWebSocketImpl {
-    pub add_form_submission_to_db_cb: fn(&SubmittedOrderData) -> bool,
     pub evaluate_order_cb: fn(&SubmittedOrderData) -> EvaluationResult,
+    pub add_evaluation_to_db_cb: fn(&EvaluationResult) -> io::Result<()>,
 }
 
 /* PRIVATE FUNCTIONS */
-fn append_the_file(filename: &String, chunks_received: u32, bin: Bytes) -> io::Result<u32> {
+fn append_the_file(filename: &String, chunks_received: &u32, bin: Bytes) -> io::Result<u32> {
     let file_path = Path::new("data_files/received_orders/").join(filename);
     if let Some(parent) = file_path.parent() {
         std::fs::create_dir_all(parent).ok();
     }
+    if (*chunks_received == 0) && file_path.exists() {
+        //Remove the file if it exists, to start fresh
+        std::fs::remove_file(&file_path)?;
+    }
+
     let mut file = OpenOptions::new()
         .create(true)
         .append(true)
@@ -50,7 +55,7 @@ fn serialize_evaluation_result(eval_result: EvaluationResult) -> String {
         "email": eval_result.email,
         "copies_nbr": eval_result.copies_nbr,
         "file_name": eval_result.file_name,
-        "price": eval_result.price,
+        "price": format!("{:.2}", eval_result.price),
         "status": "success",
         "message": "Evaluation completed successfully."
     })
@@ -81,10 +86,8 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WebSocketSession 
                 // Parse the text message into a SubmittedOrderData struct
                 match serde_json::from_str::<SubmittedOrderData>(&text) {
                     Ok(data) => {
-                        if (self.add_form_submission_to_db_cb)(&data) {
-                            self.submitted_form = Some(data);
-                            return;
-                        }
+                        self.submitted_form = Some(data);
+                        return;
                     }
                     _ => {}
                 }
@@ -102,7 +105,7 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WebSocketSession 
                     if self.chunks_received >= total_chunks {
                         panic!("Incorrect number of chunks. TBA handling");
                     }
-                    match append_the_file(filename, self.chunks_received, bin) {
+                    match append_the_file(filename, &self.chunks_received, bin) {
                         Ok(chunks_received) => {
                             self.chunks_received = chunks_received;
                         }
@@ -118,6 +121,8 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WebSocketSession 
                     }
                     if self.chunks_received == total_chunks {
                         let result = (self.evaluate_order_cb)(form);
+                        // TODO: Verify result
+                        let _ = (self.add_evaluation_to_db_cb)(&result);
                         // Serialize the evaluation result to a JSON string
                         let json_result = serialize_evaluation_result(result);
                         // Send the evaluation result back to the client
@@ -149,7 +154,7 @@ impl WebSocketInterfaceImpl for PriceEvaluationWebSocketImpl {
                 my_addr: None,
                 submitted_form: None,
                 chunks_received: 0,
-                add_form_submission_to_db_cb: self.add_form_submission_to_db_cb,
+                add_evaluation_to_db_cb: self.add_evaluation_to_db_cb,
                 evaluate_order_cb: self.evaluate_order_cb,
             },
             &req,
