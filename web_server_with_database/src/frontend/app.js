@@ -64,6 +64,39 @@ function createForm() {
     });
 }
 
+function showEvaluationResultPopup(data) {
+    // Create a popup window with the evaluation result details
+    const popup = document.createElement("div");
+    popup.style.position = "fixed";
+    popup.style.top = "50%";
+    popup.style.left = "50%";
+    popup.style.transform = "translate(-50%, -50%)";
+    popup.style.background = "#fff";
+    popup.style.border = "2px solid #333";
+    popup.style.padding = "24px";
+    popup.style.zIndex = "10000";
+    popup.style.boxShadow = "0 4px 16px rgba(0,0,0,0.2)";
+    popup.innerHTML = `
+                    <h2>Order Information</h2>
+                    <p><strong>Name:</strong> ${data.name}</p>
+                    <p><strong>Email:</strong> ${data.email}</p>
+                    <p><strong>Number of copies:</strong> ${data.copies_nbr}</p>
+                    <p><strong>File Name:</strong> ${data.file_name}</p>
+                    <h2>Estimated Price</h2>
+                    <p><strong>Printing price (without delivery):</strong> ${data.price}</p>
+                    <button id="close-eval-popup">Close</button>
+                    <button id="place-order-button">Place order</button>
+                `;
+    document.body.appendChild(popup);
+    document.getElementById("close-eval-popup").onclick = function () {
+        document.body.removeChild(popup);
+    };
+    // Temporary button to simulate placing an order
+    document.getElementById("place-order-button").onclick = function () {
+        document.body.removeChild(popup);
+    };
+}
+
 /**
  * Event listener for the DOMContentLoaded event.
  * Fetches data from the root URL and updates the content of the element with ID "content".
@@ -89,14 +122,14 @@ document.addEventListener("DOMContentLoaded", function () {
         console.log("WebSocket connection established.");
     };
     window.ws.onmessage = function (event) {
-        // Parse the received JSON string
         try {
             let data = JSON.parse(event.data);
             if (data.type === EVALUATION_RESULT_TYPE) {
-                alert("Evaluation result: " + event.data);
+                showEvaluationResultPopup(data);
             }
         } catch (e) {
-            // Do nothing
+            alert("Error parsing server response. Please check the console for details.");
+            return;
         }
         finally {
             console.log("Received message: ", event.data);
