@@ -1,5 +1,8 @@
 /* IMPORTS FROM LIBRARIES */
+use regex::Regex;
+use std::fs::File;
 use std::io::{self, Write};
+use std::io::{BufRead, BufReader};
 use std::process::Command;
 
 /* IMPORTS FROM OTHER MODULES */
@@ -8,15 +11,13 @@ use crate::common_utils::global_types::{EvaluationResult, SubmittedOrderData};
 use crate::prusa_slicer_interface::prusa_slicer_price_calculator::{
     calculate_the_price, EvaluatedPrintingParameters,
 };
-use std::fs::File;
-use std::io::{BufRead, BufReader};
 
 /* PRIVATE TYPES AND VARIABLES */
 
 /* PUBLIC TYPES AND VARIABLES */
 pub struct PrusaSlicerCli;
 
-/* PRIVATE FUNCTIONS */
+/* HELPER FUNCTIONS */
 fn slice_the_stl_file(prusa_path: &str, file_name: &str, ws_path: &str) -> io::Result<String> {
     let prusa_config_path = format!("{}/data_files/prusa_config.ini", ws_path);
     let received_file_path = format!("{}/data_files/received_orders/{}", ws_path, file_name);
@@ -47,50 +48,62 @@ fn slice_the_stl_file(prusa_path: &str, file_name: &str, ws_path: &str) -> io::R
     }
 }
 
-fn read_output_gcode_file(gcode_file_path: &str) -> EvaluatedPrintingParameters {
-    let file = File::open(gcode_file_path).expect("Failed to open G-code file");
-    let reader = BufReader::new(file);
+fn extract_time_from_line(line: &str, re: &Regex) -> Option<u32> {
+    if let Some(caps) = re.captures(line) {
+        let hours = caps
+            .get(1)
+            .map_or(0, |m| m.as_str().parse::<u32>().unwrap());
+        let minutes = caps
+            .get(2)
+            .map_or(0, |m| m.as_str().parse::<u32>().unwrap());
+        let seconds = caps
+            .get(3)
+            .map_or(0, |m| m.as_str().parse::<u32>().unwrap());
+        let estimated_time = hours * 3600 + minutes * 60 + seconds;
+        return Some(estimated_time);
+    }
+    None
+}
 
-    let mut estimated_time: u32 = 0;
-
-    for line in reader.lines() {
-        if let Ok(l) = line {
-            if l.starts_with("; estimated printing time (normal mode)") {
-                // Example line: "; estimated printing time (normal mode) = 1h 23m 45s"
-                if let Some(eq_pos) = l.find('=') {
-                    let time_str = l[eq_pos + 1..].trim();
-                    let mut total_seconds: u32 = 0;
-                    let mut current = time_str;
-                    if let Some(h_pos) = current.find('h') {
-                        let (hours, rest) = current.split_at(h_pos);
-                        if let Ok(h) = hours.trim().parse::<u32>() {
-                            total_seconds += h * 3600;
-                        }
-                        current = rest[1..].trim();
-                    }
-                    if let Some(m_pos) = current.find('m') {
-                        let (mins, rest) = current.split_at(m_pos);
-                        if let Ok(m) = mins.trim().parse::<u32>() {
-                            total_seconds += m * 60;
-                        }
-                        current = rest[1..].trim();
-                    }
-                    if let Some(s_pos) = current.find('s') {
-                        let (secs, _) = current.split_at(s_pos);
-                        if let Ok(s) = secs.trim().parse::<u32>() {
-                            total_seconds += s;
-                        }
-                    }
-                    estimated_time = total_seconds;
-                }
-                break;
-            }
+fn extract_material_from_line(line: &str, re: &Regex) -> Option<u32> {
+    if let Some(caps) = re.captures(line) {
+        if let Ok(material_mm) = caps.get(1).map_or(Ok(0), |m| m.as_str().parse::<u32>()) {
+            return Some(material_mm);
         }
     }
-    return EvaluatedPrintingParameters {
-        time: estimated_time,
-    };
+    // If the regex does not match or parsing fails, return None
+    return None;
 }
+
+fn read_output_gcode_file(gcode_file_path: &str) -> EvaluatedPrintingParameters {
+    let file: File = File::open(gcode_file_path).expect("Failed to open G-code file");
+    let reader = BufReader::new(file);
+    let re_time =
+        Regex::new(r"^; estimated printing time \(normal mode\) = (?:(\d+)h )?(?:(\d+)m )?(\d+)s$")
+            .unwrap();
+    let re_material = Regex::new(r"^; filament used \[mm\] = ([\d\.]+)$").unwrap();
+    let mut time: Option<u32> = None;
+    let mut material_mm: Option<u32> = None;
+
+    for line in reader.lines() {
+        let line_string = line.unwrap();
+        let line_str = line_string.as_str();
+        if re_time.is_match(line_str) {
+            time = extract_time_from_line(line_str, &re_time);
+        } else if re_material.is_match(line_str) {
+            material_mm = extract_material_from_line(line_str, &re_material);
+        }
+    }
+    if let (Some(t), Some(m)) = (time, material_mm) {
+        return EvaluatedPrintingParameters {
+            time: t,
+            material_mm: m,
+        };
+    }
+    panic!("Failed to find estimated printing time in G-code file");
+}
+
+/* PRIVATE FUNCTIONS */
 
 /* PUBLIC FUNCTIONS */
 impl SlicerInterfaceImpl for PrusaSlicerCli {
