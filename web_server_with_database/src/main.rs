@@ -42,6 +42,20 @@ struct Args {
     prusa_path: String,
     #[clap(short = 's', long = "system", help = "Path to Prusa Slicer executable")]
     system: String,
+    /// Time coefficient for calculations
+    #[clap(
+        long = "time-coefficient",
+        default_value_t = 1,
+        help = "Integer time coefficient"
+    )]
+    time_coefficient: u32,
+    /// Material coefficient for calculations
+    #[clap(
+        long = "material-coefficient",
+        default_value_t = 1,
+        help = "Integer material coefficient"
+    )]
+    material_coefficient: u32,
 }
 
 struct State {

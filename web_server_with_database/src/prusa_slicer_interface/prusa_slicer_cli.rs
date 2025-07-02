@@ -62,7 +62,7 @@ fn extract_time_from_line(line: &str, re: &Regex) -> Option<u32> {
         let estimated_time = hours * 3600 + minutes * 60 + seconds;
         return Some(estimated_time);
     }
-    None
+    return None;
 }
 
 fn extract_material_from_line(line: &str, re: &Regex) -> Option<u32> {
@@ -71,7 +71,6 @@ fn extract_material_from_line(line: &str, re: &Regex) -> Option<u32> {
             return Some(material_mm);
         }
     }
-    // If the regex does not match or parsing fails, return None
     return None;
 }
 
@@ -81,19 +80,20 @@ fn read_output_gcode_file(gcode_file_path: &str) -> EvaluatedPrintingParameters 
     let re_time =
         Regex::new(r"^; estimated printing time \(normal mode\) = (?:(\d+)h )?(?:(\d+)m )?(\d+)s$")
             .unwrap();
-    let re_material = Regex::new(r"^; filament used \[mm\] = ([\d\.]+)$").unwrap();
+    let re_material = Regex::new(r"^; filament used \[mm\] = (\d+)").unwrap();
     let mut time: Option<u32> = None;
     let mut material_mm: Option<u32> = None;
-
     for line in reader.lines() {
         let line_string = line.unwrap();
         let line_str = line_string.as_str();
         if re_time.is_match(line_str) {
             time = extract_time_from_line(line_str, &re_time);
         } else if re_material.is_match(line_str) {
+            println!("Matched material regex in line: {}", line_str);
             material_mm = extract_material_from_line(line_str, &re_material);
         }
     }
+    println!("Extracted time: {:?}, material_mm: {:?}", time, material_mm);
     if let (Some(t), Some(m)) = (time, material_mm) {
         return EvaluatedPrintingParameters {
             time: t,
