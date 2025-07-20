@@ -1,16 +1,18 @@
 use actix_web::{web, HttpRequest, HttpResponse};
 
-use crate::common_utils::global_types::{EvaluationResult, SubmittedOrderData};
+use crate::common_utils::global_types::{
+    EvaluatedPrintingParameters, EvaluationResult, SubmittedOrderData,
+};
 use std::io::Result;
 
 pub trait SlicerInterfaceImpl: Send + Sync {
     fn ping(&self, prusa_path: &str) -> Result<()>;
-    fn evaluate(
+    fn get_expected_print_parameters(
         &self,
         order: &SubmittedOrderData,
         slicer_path: &str,
         ws_path: &str,
-    ) -> EvaluationResult;
+    ) -> EvaluatedPrintingParameters;
 }
 
 pub trait DatabaseInterfaceImpl: Send + Sync {

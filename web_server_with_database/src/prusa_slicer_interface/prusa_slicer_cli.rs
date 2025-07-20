@@ -7,10 +7,7 @@ use std::process::Command;
 
 /* IMPORTS FROM OTHER MODULES */
 use crate::common_utils::global_traits::SlicerInterfaceImpl;
-use crate::common_utils::global_types::{EvaluationResult, SubmittedOrderData};
-use crate::prusa_slicer_interface::prusa_slicer_price_calculator::{
-    calculate_the_price, EvaluatedPrintingParameters,
-};
+use crate::common_utils::global_types::{EvaluatedPrintingParameters, SubmittedOrderData};
 
 /* PRIVATE TYPES AND VARIABLES */
 
@@ -140,31 +137,23 @@ impl SlicerInterfaceImpl for PrusaSlicerCli {
      * @param ws_path Path to the workspace directory.
      * @return EvaluationResult Result containing the evaluation details.
      */
-    fn evaluate(
+    fn get_expected_print_parameters(
         &self,
         order: &SubmittedOrderData,
         slicer_path: &str,
         ws_path: &str,
-    ) -> EvaluationResult {
-        let mut evaluation_result = EvaluationResult {
-            name: order.name.clone(),
-            email: order.email.clone(),
-            copies_nbr: order.copies_nbr,
-            file_name: order.file_name.clone(),
-            price: 0.0,
-        };
-
+    ) -> EvaluatedPrintingParameters {
         let output_file_path = match slice_the_stl_file(slicer_path, &order.file_name, ws_path) {
             Ok(path) => path,
             Err(_) => {
                 // You may want to handle the error differently or return a default EvaluationResult
-                return evaluation_result;
+                return EvaluatedPrintingParameters {
+                    time: 0,
+                    material_mm: 0,
+                };
             }
         };
-        let evaluated_printing_parameters = read_output_gcode_file(output_file_path.as_str());
-        evaluation_result.price =
-            calculate_the_price(evaluated_printing_parameters, order.copies_nbr);
-        return evaluation_result;
+        return read_output_gcode_file(output_file_path.as_str());
     }
 }
 

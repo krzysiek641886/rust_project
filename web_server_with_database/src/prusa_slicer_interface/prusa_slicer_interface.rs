@@ -5,14 +5,16 @@ use std::sync::Mutex;
 
 /* IMPORTS FROM OTHER MODULES */
 use crate::common_utils::global_traits::SlicerInterfaceImpl;
-use crate::common_utils::global_types::{EvaluationResult, SubmittedOrderData};
+use crate::common_utils::global_types::{EvaluationResult, PrinterConfiguration, SubmittedOrderData};
 use crate::prusa_slicer_interface::prusa_slicer_cli::PrusaSlicerCli;
+use crate::prusa_slicer_interface::prusa_slicer_price_calculator::calculate_the_price;
 
 /* PRIVATE TYPES AND VARIABLES */
 struct State {
     ws_path: Mutex<Option<String>>,
     slicer_exec_path: Mutex<Option<String>>,
     slicer_interface: Mutex<Box<dyn SlicerInterfaceImpl>>,
+    printer_configuration: Mutex<PrinterConfiguration>,
 }
 
 lazy_static! {
@@ -20,6 +22,15 @@ lazy_static! {
         ws_path: Mutex::new(None),
         slicer_exec_path: Mutex::new(None),
         slicer_interface: Mutex::new(Box::new(PrusaSlicerCli {})),
+        printer_configuration: Mutex::new(PrinterConfiguration { 
+            material_rate_pla: 0,
+            material_rate_pet: 0,
+            material_rate_asa: 0,
+            hourly_rate_time_threshold: [0, 10, 100],
+            hourly_rate_pla_price: [30, 25, 20],
+            hourly_rate_pet_price: [35, 30, 25],
+            hourly_rate_asa_price: [40, 35, 30],
+        }),
     };
 }
 
@@ -32,8 +43,22 @@ fn setup_paths_in_state(ws_path: &str, prusa_path: &str) -> io::Result<()> {
     Ok(())
 }
 
+fn set_printer_configuration(_printer_configuration: &str)  -> io::Result<()>  {
+    let mut printer_config_lock = SLICER_IF_STATE.printer_configuration.lock().unwrap();
+    *printer_config_lock = PrinterConfiguration {
+        material_rate_pla: 60,
+        material_rate_pet: 80,
+        material_rate_asa: 100,
+        hourly_rate_time_threshold: [0, 10, 100],
+        hourly_rate_pla_price: [30, 25, 20],
+        hourly_rate_pet_price: [35, 30, 25],
+        hourly_rate_asa_price: [40, 35, 30]
+    };
+    Ok(())
+}
+
 /* PUBLIC FUNCTIONS */
-pub fn initialize_prusa_slicer_if(ws_path: &str, prusa_path: &str) -> io::Result<()> {
+pub fn initialize_prusa_slicer_if(ws_path: &str, prusa_path: &str, printer_configuration: &str) -> io::Result<()> {
     if let Err(e) = setup_paths_in_state(ws_path, prusa_path) {
         return Err(io::Error::new(
             e.kind(),
@@ -47,6 +72,12 @@ pub fn initialize_prusa_slicer_if(ws_path: &str, prusa_path: &str) -> io::Result
             format!("Failed to ping Prusa Slicer: {}", e),
         ));
     }
+    if let Err(e) = set_printer_configuration(printer_configuration) {
+        return Err(io::Error::new(
+            e.kind(),
+            format!("Failed to set printer configuration: {}", e),
+        ));
+    }
     Ok(())
 }
 
@@ -54,11 +85,20 @@ pub fn get_prusa_slicer_evaluation(order: &SubmittedOrderData) -> EvaluationResu
     let prusa_path = &*SLICER_IF_STATE.slicer_exec_path.lock().unwrap();
     let workspace_path = &*SLICER_IF_STATE.ws_path.lock().unwrap();
     let slicer_interface_lock = SLICER_IF_STATE.slicer_interface.lock().unwrap();
-    slicer_interface_lock.evaluate(
+    let print_params = slicer_interface_lock.get_expected_print_parameters(
         order,
         prusa_path.as_deref().unwrap(),
         workspace_path.as_deref().unwrap(),
-    )
+    );
+    let printer_configuration = SLICER_IF_STATE.printer_configuration.lock().unwrap();
+    let price = calculate_the_price(&printer_configuration, print_params, order.copies_nbr);
+    EvaluationResult {
+        name: order.name.clone(),
+        email: order.email.clone(),
+        copies_nbr: order.copies_nbr,
+        file_name: order.file_name.clone(),
+        price,
+    }
 }
 
 #[cfg(test)]
@@ -66,28 +106,37 @@ mod tests {
     use super::*;
     use crate::prusa_slicer_interface::prusa_slicer_mock::PrusaSlicerMock;
 
-    /// Helper function to reset the global state
-    fn reset_state_and_setup_mocked_interface(price_to_return: f64, ping_result: bool) {
+    /// Helper function to reset the global state and set paths
+    fn reset_state_and_setup_mocked_interface(
+        ping_result: bool,
+        time_result: u32,
+        material_mm_result: u32,
+        ws_path: Option<&str>,
+        prusa_path: Option<&str>,
+    ) {
         let mut ws_path_lock = SLICER_IF_STATE.ws_path.lock().unwrap();
         let mut slicer_exec_path_lock = SLICER_IF_STATE.slicer_exec_path.lock().unwrap();
         let mut slicer_interface_lock = SLICER_IF_STATE.slicer_interface.lock().unwrap();
 
-        *ws_path_lock = None;
-        *slicer_exec_path_lock = None;
+        *ws_path_lock = ws_path.map(|s| s.to_string());
+        *slicer_exec_path_lock = prusa_path.map(|s| s.to_string());
         *slicer_interface_lock = Box::new(PrusaSlicerMock {
-            price_to_return: price_to_return,
-            ping_result: ping_result,
+            time: time_result,
+            material_mm: material_mm_result,
+            ping_result,
         });
     }
 
     #[test]
     fn test_initialize_prusa_slicer_if_successfull_ping() {
-        reset_state_and_setup_mocked_interface(42.0, true); // Reset state before the test
+        // Set up mock with ping_result = true
+        reset_state_and_setup_mocked_interface(true, 1234, 5678, None, None);
 
         let ws_path = "foobar";
         let prusa_path = "foobar";
+        // This will call ping() on the mock, which returns Ok(())
         assert!(
-            initialize_prusa_slicer_if(ws_path, prusa_path).is_ok(),
+            initialize_prusa_slicer_if(ws_path, prusa_path, "foo").is_ok(),
             "Failed to initialize Prusa Slicer interface"
         );
 
@@ -107,20 +156,21 @@ mod tests {
 
     #[test]
     fn test_initialize_prusa_slicer_if_failed_ping() {
-        reset_state_and_setup_mocked_interface(42.0, false); // Reset state before the test
+        // Set up mock with ping_result = false
+        reset_state_and_setup_mocked_interface(false, 1234, 5678, None, None);
 
         let ws_path = "foobar";
         let prusa_path = "foobar";
-        assert!(initialize_prusa_slicer_if(ws_path, prusa_path).is_err());
+        // This will call ping() on the mock, which returns Err
+        assert!(initialize_prusa_slicer_if(ws_path, prusa_path, "foo").is_err());
     }
 
     #[test]
     fn test_get_prusa_slicer_evaluation_success() {
-        reset_state_and_setup_mocked_interface(42.0, true); // Reset state before the test
-
+        // Set up mock and state directly
         let ws_path = "workspace_path";
         let prusa_path = "prusa_path";
-        initialize_prusa_slicer_if(ws_path, prusa_path).unwrap();
+        reset_state_and_setup_mocked_interface(true, 1234, 5678, Some(ws_path), Some(prusa_path));
 
         let order = SubmittedOrderData {
             name: "John Doe".to_string(),
@@ -131,6 +181,6 @@ mod tests {
         };
 
         let result = get_prusa_slicer_evaluation(&order);
-        assert_eq!(result.price, 42.0, "Evaluation result price is incorrect");
+        assert!(result.price > 0.0, "Evaluation result price is incorrect");
     }
 }

@@ -3,13 +3,14 @@ use std::io;
 
 /* IMPORTS FROM OTHER MODULES */
 use crate::common_utils::global_traits::SlicerInterfaceImpl;
-use crate::common_utils::global_types::{EvaluationResult, SubmittedOrderData};
+use crate::common_utils::global_types::{EvaluatedPrintingParameters, SubmittedOrderData};
 
 /* PRIVATE TYPES AND VARIABLES */
 
 /* PUBLIC TYPES AND VARIABLES */
 pub struct PrusaSlicerMock {
-    pub price_to_return: f64,
+    pub time: u32,
+    pub material_mm: u32,
     pub ping_result: bool,
 }
 
@@ -28,18 +29,15 @@ impl SlicerInterfaceImpl for PrusaSlicerMock {
         }
     }
 
-    fn evaluate(
+    fn get_expected_print_parameters(
         &self,
         _order: &SubmittedOrderData,
         _slicer_path: &str,
         _ws_path: &str,
-    ) -> EvaluationResult {
-        EvaluationResult {
-            name: String::from("Dummy name"),
-            email: String::from("Dummy email"),
-            copies_nbr: 42,
-            file_name: String::from("Dummy file_name"),
-            price: self.price_to_return,
+    ) -> EvaluatedPrintingParameters {
+        EvaluatedPrintingParameters {
+            time: self.time,
+            material_mm: self.material_mm,
         }
     }
 }
