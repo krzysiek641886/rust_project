@@ -30,6 +30,7 @@ pub struct EvaluatedPrintingParameters {
     pub material_mm: u32,
 }
 
+#[derive(Deserialize)]
 pub struct PrinterConfiguration {
     pub material_rate_pla: u32,
     pub material_rate_pet: u32,

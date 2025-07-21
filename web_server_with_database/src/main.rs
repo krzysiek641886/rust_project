@@ -42,20 +42,12 @@ struct Args {
     prusa_path: String,
     #[clap(short = 's', long = "system", help = "Path to Prusa Slicer executable")]
     system: String,
-    /// Time coefficient for calculations
     #[clap(
-        long = "time-coefficient",
-        default_value_t = 1,
-        help = "Integer time coefficient"
+        short = 'p',
+        long = "price-params",
+        help = "Path to the price parameters file"
     )]
-    time_coefficient: u32,
-    /// Material coefficient for calculations
-    #[clap(
-        long = "material-coefficient",
-        default_value_t = 1,
-        help = "Integer material coefficient"
-    )]
-    material_coefficient: u32,
+    price_params: String,
 }
 
 struct State {
@@ -83,7 +75,7 @@ lazy_static! {
 fn initialize_modules_with_cmd_arguments(args: Args) {
     // This consumes the args struct and initializes the global state. No other use of args is allowed after this point.
     initialize_db(&args.db_name);
-    initialize_prusa_slicer_if(&args.ws_path, &args.prusa_path, "foo")
+    initialize_prusa_slicer_if(&args.ws_path, &args.prusa_path, &args.price_params)
         .expect("Failed to initialize Prusa Slicer interface");
     let mut ws_path_lock = MAIN_STATE.ws_path.lock().unwrap();
     *ws_path_lock = args.ws_path.to_string();

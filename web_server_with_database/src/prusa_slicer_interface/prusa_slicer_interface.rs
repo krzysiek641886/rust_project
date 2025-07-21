@@ -5,7 +5,9 @@ use std::sync::Mutex;
 
 /* IMPORTS FROM OTHER MODULES */
 use crate::common_utils::global_traits::SlicerInterfaceImpl;
-use crate::common_utils::global_types::{EvaluationResult, PrinterConfiguration, SubmittedOrderData};
+use crate::common_utils::global_types::{
+    EvaluationResult, PrinterConfiguration, SubmittedOrderData,
+};
 use crate::prusa_slicer_interface::prusa_slicer_cli::PrusaSlicerCli;
 use crate::prusa_slicer_interface::prusa_slicer_price_calculator::calculate_the_price;
 
@@ -22,7 +24,7 @@ lazy_static! {
         ws_path: Mutex::new(None),
         slicer_exec_path: Mutex::new(None),
         slicer_interface: Mutex::new(Box::new(PrusaSlicerCli {})),
-        printer_configuration: Mutex::new(PrinterConfiguration { 
+        printer_configuration: Mutex::new(PrinterConfiguration {
             material_rate_pla: 0,
             material_rate_pet: 0,
             material_rate_asa: 0,
@@ -43,22 +45,34 @@ fn setup_paths_in_state(ws_path: &str, prusa_path: &str) -> io::Result<()> {
     Ok(())
 }
 
-fn set_printer_configuration(_printer_configuration: &str)  -> io::Result<()>  {
+fn open_and_parse_json_file_into_printer_configuration(
+    file_path: &str,
+) -> io::Result<PrinterConfiguration> {
+    let file_content = std::fs::read_to_string(file_path)?;
+    let printer_config: PrinterConfiguration = serde_json::from_str(&file_content)
+        .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
+    Ok(printer_config)
+}
+
+fn set_printer_configuration(ws_path: &str, printer_configuration: &str) -> io::Result<()> {
+    let full_path = format!("{}/{}", ws_path, printer_configuration);
+    let config = open_and_parse_json_file_into_printer_configuration(&full_path).map_err(|e| {
+        io::Error::new(
+            e.kind(),
+            format!("Failed to parse printer configuration: {}", e),
+        )
+    })?;
     let mut printer_config_lock = SLICER_IF_STATE.printer_configuration.lock().unwrap();
-    *printer_config_lock = PrinterConfiguration {
-        material_rate_pla: 60,
-        material_rate_pet: 80,
-        material_rate_asa: 100,
-        hourly_rate_time_threshold: [0, 10, 100],
-        hourly_rate_pla_price: [30, 25, 20],
-        hourly_rate_pet_price: [35, 30, 25],
-        hourly_rate_asa_price: [40, 35, 30]
-    };
+    *printer_config_lock = config;
     Ok(())
 }
 
 /* PUBLIC FUNCTIONS */
-pub fn initialize_prusa_slicer_if(ws_path: &str, prusa_path: &str, printer_configuration: &str) -> io::Result<()> {
+pub fn initialize_prusa_slicer_if(
+    ws_path: &str,
+    prusa_path: &str,
+    price_params_rel_path: &str,
+) -> io::Result<()> {
     if let Err(e) = setup_paths_in_state(ws_path, prusa_path) {
         return Err(io::Error::new(
             e.kind(),
@@ -72,7 +86,7 @@ pub fn initialize_prusa_slicer_if(ws_path: &str, prusa_path: &str, printer_confi
             format!("Failed to ping Prusa Slicer: {}", e),
         ));
     }
-    if let Err(e) = set_printer_configuration(printer_configuration) {
+    if let Err(e) = set_printer_configuration(ws_path, price_params_rel_path) {
         return Err(io::Error::new(
             e.kind(),
             format!("Failed to set printer configuration: {}", e),
