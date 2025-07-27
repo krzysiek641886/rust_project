@@ -5,7 +5,7 @@ use std::sync::Mutex;
 
 /* IMPORTS FROM OTHER MODULES */
 use crate::common_utils::global_traits::DatabaseInterfaceImpl;
-use crate::common_utils::global_types::EvaluationResult;
+use crate::common_utils::global_types::{EvaluationResult, PrintMaterialType};
 
 /* PRIVATE TYPES AND VARIABLES */
 /* PUBLIC TYPES AND VARIABLES */
@@ -21,15 +21,25 @@ fn write_evaluation_to_db(
     copies_nbr: u32,
     file_name: &str,
     price: f64,
+    material_type: &str,
 ) -> io::Result<()> {
-    let params = rusqlite::params![name, email, copies_nbr, file_name, price];
-    let sql = "INSERT INTO Orders (name, email, copies_nbr, file_name, price) VALUES (?1, ?2, ?3, ?4, ?5)";
+    let params = rusqlite::params![name, email, copies_nbr, file_name, price, material_type];
+    let sql = "INSERT INTO Orders (name, email, copies_nbr, file_name, price, material_type) VALUES (?1, ?2, ?3, ?4, ?5, ?6)";
     match db_conn.execute(sql, params) {
         Ok(_) => Ok(()),
         Err(_) => Err(io::Error::new(
             io::ErrorKind::Other,
             "Failed to write to database",
         )),
+    }
+}
+
+fn str_to_print_material_type(material: &str) -> Result<PrintMaterialType, &'static str> {
+    match material {
+        "PLA" => Ok(PrintMaterialType::PLA),
+        "PET" => Ok(PrintMaterialType::PET),
+        "ASA" => Ok(PrintMaterialType::ASA),
+        _ => Err("Unknown material type"),
     }
 }
 
@@ -43,7 +53,9 @@ impl DatabaseInterfaceImpl for DatabaseSQLiteImpl {
             email text not null,
             copies_nbr integer not null,
             file_name text not null,
-            price REAL not null)",
+            price REAL not null,
+            material_type text not null
+            )",
             [],
         )
         .expect("Failed to create Orders table");
@@ -62,7 +74,7 @@ impl DatabaseInterfaceImpl for DatabaseSQLiteImpl {
         })?;
 
         let mut stmt = conn
-            .prepare("SELECT name, email, copies_nbr, file_name, price FROM Orders")
+            .prepare("SELECT name, email, copies_nbr, file_name, price, material_type FROM Orders")
             .map_err(|e| {
                 io::Error::new(
                     io::ErrorKind::Other,
@@ -71,12 +83,25 @@ impl DatabaseInterfaceImpl for DatabaseSQLiteImpl {
             })?;
         let order_iter = stmt
             .query_map([], |row| {
+                let material_type_str: String = row.get(5)?;
+                let material_type = str_to_print_material_type(&material_type_str);
+                if material_type.is_err() {
+                    return Err(rusqlite::Error::FromSqlConversionFailure(
+                        5,
+                        rusqlite::types::Type::Text,
+                        Box::new(std::io::Error::new(
+                            std::io::ErrorKind::InvalidData,
+                            "Unknown material type",
+                        )),
+                    ));
+                };
                 Ok(EvaluationResult {
                     name: row.get(0)?,
                     email: row.get(1)?,
                     copies_nbr: row.get(2)?,
                     file_name: row.get(3)?,
                     price: row.get(4)?,
+                    material_type: material_type.unwrap(),
                 })
             })
             .map_err(|e| {
@@ -107,6 +132,7 @@ impl DatabaseInterfaceImpl for DatabaseSQLiteImpl {
             eval_result.copies_nbr,
             eval_result.file_name.as_str(),
             eval_result.price,
+            eval_result.material_type.to_string().as_str(),
         );
     }
 }

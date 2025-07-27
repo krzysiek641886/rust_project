@@ -56,6 +56,7 @@ fn serialize_evaluation_result(eval_result: EvaluationResult) -> String {
         "copies_nbr": eval_result.copies_nbr,
         "file_name": eval_result.file_name,
         "price": format!("{:.2}", eval_result.price),
+        "material_type": eval_result.material_type.to_string(),
         "status": "success",
         "message": "Evaluation completed successfully."
     })

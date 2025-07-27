@@ -7,7 +7,7 @@ use std::sync::Mutex;
 /* IMPORTS FROM OTHER MODULES */
 use crate::api::web_socket_impl::PriceEvaluationWebSocketImpl;
 use crate::common_utils::global_traits::WebSocketInterfaceImpl;
-use crate::common_utils::global_types::{EvaluationResult, SubmittedOrderData};
+use crate::common_utils::global_types::{EvaluationResult, SubmittedOrderData, PrintMaterialType};
 use crate::database_handler::{add_evaluation_to_db, read_orders_from_db};
 use crate::prusa_slicer_interface::get_prusa_slicer_evaluation;
 
@@ -96,6 +96,7 @@ pub async fn get_orders_handler() -> impl Responder {
         copies_nbr: u32,
         file_name: String,
         price: f64,
+        material_type: PrintMaterialType,
     }
     match read_orders_from_db() {
         Ok(orders) => {
@@ -107,6 +108,7 @@ pub async fn get_orders_handler() -> impl Responder {
                     copies_nbr: order.copies_nbr,
                     file_name: order.file_name,
                     price: order.price,
+                    material_type: order.material_type,
                 })
                 .collect();
             HttpResponse::Ok().json(orders_json)

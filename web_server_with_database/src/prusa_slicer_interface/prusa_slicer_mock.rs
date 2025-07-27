@@ -3,7 +3,9 @@ use std::io;
 
 /* IMPORTS FROM OTHER MODULES */
 use crate::common_utils::global_traits::SlicerInterfaceImpl;
-use crate::common_utils::global_types::{EvaluatedPrintingParameters, SubmittedOrderData};
+use crate::common_utils::global_types::{
+    EvaluatedPrintingParameters, PrintMaterialType, SubmittedOrderData,
+};
 
 /* PRIVATE TYPES AND VARIABLES */
 
@@ -12,6 +14,7 @@ pub struct PrusaSlicerMock {
     pub time: u32,
     pub material_mm: u32,
     pub ping_result: bool,
+    pub material_type: PrintMaterialType,
 }
 
 /* PRIVATE FUNCTIONS */
@@ -38,6 +41,7 @@ impl SlicerInterfaceImpl for PrusaSlicerMock {
         EvaluatedPrintingParameters {
             time: self.time,
             material_mm: self.material_mm,
+            material_type: self.material_type.clone(),
         }
     }
 }

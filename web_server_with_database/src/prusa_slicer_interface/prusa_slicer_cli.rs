@@ -7,7 +7,9 @@ use std::process::Command;
 
 /* IMPORTS FROM OTHER MODULES */
 use crate::common_utils::global_traits::SlicerInterfaceImpl;
-use crate::common_utils::global_types::{EvaluatedPrintingParameters, SubmittedOrderData};
+use crate::common_utils::global_types::{
+    EvaluatedPrintingParameters, PrintMaterialType, SubmittedOrderData,
+};
 
 /* PRIVATE TYPES AND VARIABLES */
 
@@ -71,7 +73,10 @@ fn extract_material_from_line(line: &str, re: &Regex) -> Option<u32> {
     return None;
 }
 
-fn read_output_gcode_file(gcode_file_path: &str) -> EvaluatedPrintingParameters {
+fn read_output_gcode_file(
+    material_type: PrintMaterialType,
+    gcode_file_path: &str,
+) -> EvaluatedPrintingParameters {
     let file: File = File::open(gcode_file_path).expect("Failed to open G-code file");
     let reader = BufReader::new(file);
     let re_time =
@@ -95,6 +100,7 @@ fn read_output_gcode_file(gcode_file_path: &str) -> EvaluatedPrintingParameters 
         return EvaluatedPrintingParameters {
             time: t,
             material_mm: m,
+            material_type: material_type,
         };
     }
     panic!("Failed to find estimated printing time in G-code file");
@@ -150,10 +156,11 @@ impl SlicerInterfaceImpl for PrusaSlicerCli {
                 return EvaluatedPrintingParameters {
                     time: 0,
                     material_mm: 0,
+                    material_type: order.material_type.clone(),
                 };
             }
         };
-        return read_output_gcode_file(output_file_path.as_str());
+        return read_output_gcode_file(order.material_type.clone(), output_file_path.as_str());
     }
 }
 

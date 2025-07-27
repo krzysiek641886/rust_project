@@ -51,13 +51,6 @@ check_project_ready() {
         echo "Please install PrusaSlicer application from https://www.prusa3d.com/prusaslicer/"
         exit;
     fi
-    #Check if the database file exists
-    if [ ! -f "data_files/price_evaulator_database.db" ]; then
-        echo "Error: Database file data_files/price_evaulator_database.db does not exist"
-        echo "Please run the server with --setup flag to create the database file"
-        exit;
-    fi
-
 }
 
 # Function to run the server

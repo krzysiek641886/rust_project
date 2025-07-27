@@ -14,6 +14,12 @@ function createForm() {
             <input type="text" id="email" name="email" required><br>
             <label for="copies_nbr">Number of copies:</label>
             <input type="number" id="copies_nbr" name="copies_nbr" required><br>
+            <label for="material_type">Material type:</label>
+            <select id="material_type" name="material_type" required>
+                <option value="PLA">PLA</option>
+                <option value="PET">PET</option>
+                <option value="ASA">ASA</option>
+            </select><br>
             <label for="file">Choose file to upload:</label>
             <input type="file" id="file" name="file" required>
             <button type="submit" id="upload-button">Upload</button>
@@ -44,6 +50,7 @@ function createForm() {
             copies_nbr: parseInt(formData.get("copies_nbr"), 10),
             file_name: file.name,
             nbr_of_chunks: nbrTotalChunks,
+            material_type: formData.get("material_type"),
         };
 
         const arrayBufferChunks = [];
@@ -82,6 +89,7 @@ function showEvaluationResultPopup(data) {
                     <p><strong>Email:</strong> ${data.email}</p>
                     <p><strong>Number of copies:</strong> ${data.copies_nbr}</p>
                     <p><strong>File Name:</strong> ${data.file_name}</p>
+                    <p><strong>Material Type:</strong> ${data.material_type}</p>
                     <h2>Estimated Price</h2>
                     <p><strong>Printing price (without delivery):</strong> ${data.price}</p>
                     <button id="close-eval-popup">Close</button>

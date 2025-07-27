@@ -1,10 +1,22 @@
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
+use std::fmt::Display;
 
 /* PUBLIC TYPES */
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum PrintMaterialType {
     PLA,
     PET,
     ASA,
+}
+
+impl Display for PrintMaterialType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            PrintMaterialType::PLA => write!(f, "PLA"),
+            PrintMaterialType::PET => write!(f, "PET"),
+            PrintMaterialType::ASA => write!(f, "ASA"),
+        }
+    }
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -14,7 +26,7 @@ pub struct SubmittedOrderData {
     pub copies_nbr: u32,
     pub file_name: String,
     pub nbr_of_chunks: u32,
-    // pub material_type: PrintMaterialType,
+    pub material_type: PrintMaterialType,
 }
 
 pub struct EvaluationResult {
@@ -23,11 +35,13 @@ pub struct EvaluationResult {
     pub copies_nbr: u32,
     pub file_name: String,
     pub price: f64,
+    pub material_type: PrintMaterialType,
 }
 
 pub struct EvaluatedPrintingParameters {
     pub time: u32,
     pub material_mm: u32,
+    pub material_type: PrintMaterialType,
 }
 
 #[derive(Deserialize)]

@@ -30,13 +30,12 @@ pub fn calculate_the_price(
 
     // Hourly Rate PET + 5zl PLA Rate
     // Hourly Rate ASA + 5zl PET Rate
-    let material = PrintMaterialType::PLA; // Assuming PLA for simplicity, this should be passed as an argument in a real scenario
-    let _material_rate = match material {
+    let _material_rate = match print_params.material_type {
         PrintMaterialType::PLA => printer_configuration.material_rate_pla,
         PrintMaterialType::PET => printer_configuration.material_rate_pet,
         PrintMaterialType::ASA => printer_configuration.material_rate_asa,
     };
-    let _hourly_rate = match material {
+    let _hourly_rate = match print_params.material_type {
         PrintMaterialType::PLA => printer_configuration.hourly_rate_pla_price,
         PrintMaterialType::PET => printer_configuration.hourly_rate_pet_price,
         PrintMaterialType::ASA => printer_configuration.hourly_rate_asa_price,

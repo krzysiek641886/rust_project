@@ -112,13 +112,17 @@ pub fn get_prusa_slicer_evaluation(order: &SubmittedOrderData) -> EvaluationResu
         copies_nbr: order.copies_nbr,
         file_name: order.file_name.clone(),
         price,
+        material_type: order.material_type.clone(),
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::prusa_slicer_interface::prusa_slicer_mock::PrusaSlicerMock;
+    use crate::{
+        common_utils::global_types::PrintMaterialType,
+        prusa_slicer_interface::prusa_slicer_mock::PrusaSlicerMock,
+    };
 
     /// Helper function to reset the global state and set paths
     fn reset_state_and_setup_mocked_interface(
@@ -138,6 +142,7 @@ mod tests {
             time: time_result,
             material_mm: material_mm_result,
             ping_result,
+            material_type: PrintMaterialType::PLA, // Assuming PLA for simplicity
         });
     }
 
@@ -192,6 +197,7 @@ mod tests {
             copies_nbr: 5,
             file_name: "file.stl".to_string(),
             nbr_of_chunks: 42,
+            material_type: PrintMaterialType::PLA,
         };
 
         let result = get_prusa_slicer_evaluation(&order);
