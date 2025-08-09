@@ -1,10 +1,3 @@
-This is test package for 3D print price evaluator.
-
-Before starting up the program you need to set up the configuration. Follow those steps:
-1. Install Prusa Slicer on your PC
-2. In the file print_price_evaluator.bat change line 4 to reflect the path to prusa-slicer.exe file on your PC
-3. Update data_files\price_calculator_params.json with your expected pricing. Instructions can be found lower in this file.
-
 ## Test Package for 3D Print Price Evaluator
 
 ### Initial Setup

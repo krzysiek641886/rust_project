@@ -123,7 +123,11 @@ copy target\release\web_server_with_database.exe release_package\
 copy defaults\price_calculator_params.json release_package\data_files
 copy defaults\prusa_config.ini release_package\data_files
 copy defaults\print_price_evaluator.bat release_package\print_price_evaluator.bat
+copy defaults\README.md release_package\README.md
 xcopy /E /I src\frontend release_package\src\frontend
+powershell Compress-Archive -Path release_package -DestinationPath release_package.zip -Force
+rmdir /s /q release_package
+
 goto:eof
 
 pause
