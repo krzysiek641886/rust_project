@@ -118,10 +118,12 @@ mkdir release_package
 mkdir release_package\data_files
 mkdir release_package\data_files\received_orders
 mkdir release_package\data_files\processed_orders
+mkdir release_package\src\frontend
 copy target\release\web_server_with_database.exe release_package\
 copy defaults\price_calculator_params.json release_package\data_files
 copy defaults\prusa_config.ini release_package\data_files
 copy defaults\print_price_evaluator.bat release_package\print_price_evaluator.bat
+xcopy /E /I src\frontend release_package\src\frontend
 goto:eof
 
 pause
