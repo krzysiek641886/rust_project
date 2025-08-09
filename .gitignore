@@ -23,5 +23,8 @@ Cargo.lock
 # Ignore VScode files
 *.vscode
 
-# Ignore the release package
+# Ignore the release package directory
 release_package
+
+# Ignore the release package zip
+release_package.zip

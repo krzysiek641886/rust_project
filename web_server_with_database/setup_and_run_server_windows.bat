@@ -124,6 +124,9 @@ copy defaults\price_calculator_params.json release_package\data_files
 copy defaults\prusa_config.ini release_package\data_files
 copy defaults\print_price_evaluator.bat release_package\print_price_evaluator.bat
 xcopy /E /I src\frontend release_package\src\frontend
+powershell Compress-Archive -Path release_package -DestinationPath release_package.zip -Force
+rmdir /s /q release_package
+
 goto:eof
 
 pause
