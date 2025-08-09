@@ -20,6 +20,8 @@ if "%~1"=="-r" goto run_server
 if "%~1"=="--run" goto run_server
 if "%~1"=="-t" goto run_tests
 if "%~1"=="--test" goto run_tests
+if "%~1"=="--make_package" goto make_package
+if "%~1"=="-m" goto make_package
 
 echo Invalid option: %1
 goto show_help
@@ -29,10 +31,11 @@ REM Function to display the help menu
 :show_help
 echo Usage: setup_and_run_server_windows.bat [OPTION]
 echo Options:
-echo   -h, --help       Show this help message and exit
-echo   -s, --setup      Set up the project
-echo   -r, --run        Run the server
-echo   -t, --test       Run the tests
+echo   -h, --help               Show this help message and exit
+echo   -s, --setup              Set up the project
+echo   -r, --run                Run the server
+echo   -t, --test               Run the tests
+echo   -m, --make_package       Create a release package
 goto:eof
 
 REM Function to set up the project
@@ -101,6 +104,24 @@ REM Function to run the tests
 :run_tests
 echo Running the tests...
 cargo test
+goto:eof
+
+REM Function to run the tests
+:make_package
+echo Creating a release package...
+cargo build --release
+if not exist "target\release\web_server_with_database.exe" (
+    echo Error: Release build failed
+    exit /b 1
+)
+mkdir release_package
+mkdir release_package\data_files
+mkdir release_package\data_files\received_orders
+mkdir release_package\data_files\processed_orders
+copy target\release\web_server_with_database.exe release_package\
+copy defaults\price_calculator_params.json release_package\data_files
+copy defaults\prusa_config.ini release_package\data_files
+copy defaults\print_price_evaluator.bat release_package\print_price_evaluator.bat
 goto:eof
 
 pause

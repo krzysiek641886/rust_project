@@ -1,0 +1,9 @@
+{
+    "material_rate_pla": 0,
+    "material_rate_pet": 0,
+    "material_rate_asa": 0,
+    "hourly_rate_time_threshold": [0, 10, 100],
+    "hourly_rate_pla_price": [30, 25, 20],
+    "hourly_rate_pet_price": [35, 30, 25],
+    "hourly_rate_asa_price": [40, 35, 30]
+}
