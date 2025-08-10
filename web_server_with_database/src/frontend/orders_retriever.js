@@ -47,7 +47,7 @@ function populateOrdersTable(orders) {
             <td>${order.copies_nbr}</td>
             <td>${order.material_type}</td>
             <td>${order.file_name}</td>
-            <td>$${order.price.toFixed(2)}</td>
+            <td>${order.price.toFixed(2)} PLN</td>
         `;
         tbody.appendChild(row);
     });
