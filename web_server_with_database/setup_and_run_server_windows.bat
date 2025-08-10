@@ -11,7 +11,7 @@ if "%~1"=="" (
     echo Invalid option: %1
     goto show_help
     exit /b 1
-)
+if "%~1"=="" goto show_help
 if "%~1"=="-h" goto show_help
 if "%~1"=="--help" goto show_help
 if "%~1"=="-s" goto setup_project
