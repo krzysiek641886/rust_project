@@ -1,3 +1,6 @@
+import createRetrievedOrdersTable from "./orders_retriever.js";
+
+
 var ERROR_CODE_FAILED_PROCESSING_SUBMITTED_FORM = 1006;
 var EVALUATION_RESULT_TYPE = "evaluation_result";
 
@@ -152,4 +155,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // Create the form regardless of the API call status
     createForm();
+
+    // Create the orders table
+    createRetrievedOrdersTable();
 });
