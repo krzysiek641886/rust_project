@@ -97,7 +97,7 @@ if not exist "target\debug\web_server_with_database.exe" (
     echo Building project...
     cargo build
 )
-target\debug\web_server_with_database.exe --ws-path "C:\Users\krzys\Desktop\RustProject\rust_project\web_server_with_database" --db-name data_files\price_evaulator_database.db --prusa-slicer-path "%prusa_slicer_path%" --system windows --price-params "%price_calculator_params%"
+target\debug\web_server_with_database.exe --ws-path "C:\Users\krzys\Desktop\RustProject\rust_project\web_server_with_database" --db-name data_files\price_evaluator_database.db --prusa-slicer-path "%prusa_slicer_path%" --system windows --price-params "%price_calculator_params%"
 goto:eof
 
 REM Function to run the tests
