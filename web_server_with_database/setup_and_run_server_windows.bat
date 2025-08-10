@@ -7,10 +7,6 @@ set price_calculator_params=data_files\price_calculator_params.json
 set current_directory=%cd%
 
 REM Parse command-line arguments
-if "%~1"=="" (
-    echo Invalid option: %1
-    goto show_help
-    exit /b 1
 if "%~1"=="" goto show_help
 if "%~1"=="-h" goto show_help
 if "%~1"=="--help" goto show_help
