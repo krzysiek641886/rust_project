@@ -110,9 +110,12 @@ impl DatabaseInterfaceImpl for DatabaseSQLiteImpl {
 
         let mut orders = Vec::new();
         for order in order_iter {
-            orders.push(order.map_err(|e| {
-                io::Error::new(io::ErrorKind::Other, format!("Failed to map row: {}", e))
-            })?);
+            orders.insert(
+                0,
+                order.map_err(|e| {
+                    io::Error::new(io::ErrorKind::Other, format!("Failed to map row: {}", e))
+                })?,
+            );
         }
         Ok(orders)
     }

@@ -9,16 +9,22 @@
 </head>
 
 <body>
-    <h2 class="spaced">3D print price calculator</h2>
+    <div class="content">
+        <h1>3D print price calculator</h1>
+        <p>Please submit your contact information and upload an STL file with 3D print file that you'd like
+            to receive</p>
+        <h2>
+            <div id="form-container"></div>
+        </h2>
 
-    <p class="spaced">Please submit your contact information and upload an STL file with 3D print file that you'd like
-        to receive.</p>
-
-    <h2 class="spaced">
-        <div id="form-container"></div>
-    </h2>
-
-    <script src="app.js"></script>
+        <hr>
+        <h2>Price calculation results</h2>
+        <button id="request-orders-btn" style="padding: 8px 32px;">Retrieve all orders</button>
+        <div id="results-container" style="margin: 16px 0px;">
+            <p>Results will be displayed here after calculation.</p>
+        </div>
+    </div>
+    <script type="module" src="app.js"></script>
 </body>
 
 </html>
