@@ -41,14 +41,31 @@ function populateOrdersTable(orders) {
 
     orders.forEach(order => {
         const row = document.createElement("tr");
-        row.innerHTML = `
-            <td>${order.name}</td>
-            <td>${order.email}</td>
-            <td>${order.copies_nbr}</td>
-            <td>${order.material_type}</td>
-            <td>${order.file_name}</td>
-            <td>${order.price.toFixed(2)} PLN</td>
-        `;
+
+        const nameTd = document.createElement("td");
+        nameTd.textContent = order.name;
+        row.appendChild(nameTd);
+
+        const emailTd = document.createElement("td");
+        emailTd.textContent = order.email;
+        row.appendChild(emailTd);
+
+        const copiesTd = document.createElement("td");
+        copiesTd.textContent = order.copies_nbr;
+        row.appendChild(copiesTd);
+
+        const materialTd = document.createElement("td");
+        materialTd.textContent = order.material_type;
+        row.appendChild(materialTd);
+
+        const fileNameTd = document.createElement("td");
+        fileNameTd.textContent = order.file_name;
+        row.appendChild(fileNameTd);
+
+        const priceTd = document.createElement("td");
+        priceTd.textContent = order.price.toFixed(2) + " PLN";
+        row.appendChild(priceTd);
+
         tbody.appendChild(row);
     });
 }
