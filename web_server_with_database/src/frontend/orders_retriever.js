@@ -44,6 +44,8 @@ function populateOrdersTable(orders) {
 
     orders.forEach(order => {
         const row = document.createElement("tr");
+        // Set row ID to order.date
+        row.id = `order-${order.date}`;
 
         const dateTd = document.createElement("td");
         dateTd.textContent = order.date;
@@ -78,9 +80,47 @@ function populateOrdersTable(orders) {
         row.appendChild(printTypeTd);
 
         const statusTd = document.createElement("td");
-        statusTd.textContent = order.status;
+        createStatusDropdown(statusTd, order);
         row.appendChild(statusTd);
 
         tbody.appendChild(row);
     });
+}
+
+function createStatusDropdown(parent, order) {
+    const statusSelect = document.createElement("select");
+    statusSelect.className = "status-select";
+    statusSelect.dataset.orderId = order.id;
+
+    const statuses = ["New", "InProgress", "Completed", "Canceled"];
+    statuses.forEach(status => {
+        const option = document.createElement("option");
+        option.value = status;
+        option.textContent = status.charAt(0).toUpperCase() + status.slice(1);
+        if (status === order.status) {
+            option.selected = true;
+        }
+        statusSelect.appendChild(option);
+    });
+
+    statusSelect.addEventListener("change", async function () {
+        try {
+            const response = await fetch(`/api/orders/modify`, {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ datetime: order.date, new_status: this.value })
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+        } catch (error) {
+            console.error("Error updating status:", error);
+            alert("Failed to update status. Please try again.");
+        }
+    });
+
+    parent.appendChild(statusSelect);
 }

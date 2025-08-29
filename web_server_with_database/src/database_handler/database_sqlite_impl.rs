@@ -51,6 +51,21 @@ fn write_evaluation_to_db(
     }
 }
 
+fn update_order_status_in_db(conn: &Connection, datetime: &str, new_status: &str) -> io::Result<()> {
+    // Handle case where datetime ends with ' UTC'
+    let datetime: &str = &datetime[0..19];
+
+    let sql = "UPDATE Orders SET status = ? WHERE date = ?";
+    let params = [new_status, datetime];
+    match conn.execute(sql, params) {
+        Ok(_) => Ok(()),
+        Err(e) => Err(io::Error::new(
+            io::ErrorKind::Other,
+            format!("Failed to update order status: {}", e),
+        )),
+    }
+}
+
 /* PUBLIC FUNCTIONS */
 impl DatabaseInterfaceImpl for DatabaseSQLiteImpl {
     fn initialize_db(&self, db_name: &str) -> io::Result<()> {
@@ -190,5 +205,16 @@ impl DatabaseInterfaceImpl for DatabaseSQLiteImpl {
             eval_result.print_type.to_string().as_str(),
             StatusType::New.to_string().as_str(),
         );
+    }
+
+    fn modify_order_in_database(&self, datetime: &str, new_status: &str) -> io::Result<()> {
+        let db_conn = self.db_conn.lock().unwrap();
+        let conn = db_conn.as_ref().ok_or_else(|| {
+            io::Error::new(
+                io::ErrorKind::NotConnected,
+                "Database connection is not initialized",
+            )
+        })?;
+        return update_order_status_in_db(conn, datetime, new_status);
     }
 }
