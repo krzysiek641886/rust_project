@@ -1,4 +1,5 @@
 import createRetrievedOrdersTable from "./orders_retriever.js";
+import createDragAndDropArea from "./drag_and_drop_area.js";
 
 
 var ERROR_CODE_FAILED_PROCESSING_SUBMITTED_FORM = 1006;
@@ -28,17 +29,21 @@ function createForm() {
                 <option value="TBA">TBA</option>
             </select><br>
             <label for="file">Choose file to upload:</label>
-            <input type="file" id="file" name="file" required>
-            <button type="submit" id="upload-button">Upload</button>
+            <div id="drag-drop-placeholder"></div>
+            <button type="submit" id="upload-button">Evaluate Price</button>
         </form>
     `;
+
+    // Insert drag & drop area
+    const placeholder = document.getElementById("drag-drop-placeholder");
+    const fileInput = createDragAndDropArea(placeholder);
 
     // Add event listener for form submission
     const form = document.getElementById("file-upload-form");
     form.addEventListener("submit", async function (event) {
         event.preventDefault(); // Prevent the default form submission
         const formData = new FormData(form);
-        const file = formData.get("file");
+        const file = fileInput.files[0];
         if (!file) {
             alert("No file selected.");
             return;
