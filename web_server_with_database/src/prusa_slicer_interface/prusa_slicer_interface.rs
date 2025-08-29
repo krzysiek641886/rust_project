@@ -125,7 +125,7 @@ pub fn get_prusa_slicer_evaluation(order: &SubmittedOrderData) -> EvaluationResu
 mod tests {
     use super::*;
     use crate::{
-        common_utils::global_types::PrintMaterialType,
+        common_utils::global_types::{PrintMaterialType, PrintType},
         prusa_slicer_interface::prusa_slicer_mock::PrusaSlicerMock,
     };
 
@@ -203,6 +203,7 @@ mod tests {
             file_name: "file.stl".to_string(),
             nbr_of_chunks: 42,
             material_type: PrintMaterialType::PLA,
+            print_type: PrintType::TBA,
         };
 
         let result = get_prusa_slicer_evaluation(&order);
