@@ -7,7 +7,7 @@ use std::sync::Mutex;
 /* IMPORTS FROM OTHER MODULES */
 use crate::api::web_socket_impl::PriceEvaluationWebSocketImpl;
 use crate::common_utils::global_traits::WebSocketInterfaceImpl;
-use crate::common_utils::global_types::{EvaluationResult, SubmittedOrderData, PrintMaterialType};
+use crate::common_utils::global_types::{EvaluationResult, PrintMaterialType};
 use crate::database_handler::{add_evaluation_to_db, read_orders_from_db};
 use crate::prusa_slicer_interface::get_prusa_slicer_evaluation;
 
@@ -22,7 +22,7 @@ lazy_static! {
         app_init_status: Mutex::new(false),
         websocket_session: Mutex::new(PriceEvaluationWebSocketImpl {
             add_evaluation_to_db_cb: add_evaluation_to_db,
-            evaluate_order_cb: evaluate_order,
+            evaluate_order_cb: get_prusa_slicer_evaluation,
         }),
     };
 }
@@ -30,9 +30,6 @@ lazy_static! {
 /* PUBLIC TYPES AND VARIABLES */
 
 /* PRIVATE FUNCTIONS */
-fn evaluate_order(form_fields: &SubmittedOrderData) -> EvaluationResult {
-    return get_prusa_slicer_evaluation(&form_fields);
-}
 
 /* PUBLIC FUNCTIONS */
 /**
@@ -91,24 +88,30 @@ pub async fn eval_result_websocket_handler(req: HttpRequest, stream: web::Payloa
 pub async fn get_orders_handler() -> impl Responder {
     #[derive(Serialize)]
     struct Order {
+        date: String,
         name: String,
         email: String,
         copies_nbr: u32,
         file_name: String,
         price: f64,
         material_type: PrintMaterialType,
+        print_type: String,
+        status: String,
     }
     match read_orders_from_db() {
         Ok(orders) => {
             let orders_json: Vec<Order> = orders
                 .into_iter()
                 .map(|order: EvaluationResult| Order {
+                    date: order.date.to_string(),
                     name: order.name,
                     email: order.email,
                     copies_nbr: order.copies_nbr,
                     file_name: order.file_name,
                     price: order.price,
                     material_type: order.material_type,
+                    print_type: order.print_type.to_string(),
+                    status: order.status.to_string(),
                 })
                 .collect();
             HttpResponse::Ok().json(orders_json)

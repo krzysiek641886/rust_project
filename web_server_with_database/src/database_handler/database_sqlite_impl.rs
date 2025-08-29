@@ -5,7 +5,11 @@ use std::sync::Mutex;
 
 /* IMPORTS FROM OTHER MODULES */
 use crate::common_utils::global_traits::DatabaseInterfaceImpl;
-use crate::common_utils::global_types::{EvaluationResult, PrintMaterialType};
+use crate::common_utils::global_types::{EvaluationResult, StatusType};
+use crate::database_handler::database_type_conversions::{
+    chrono_to_datetime, datetime_to_chrono, str_to_print_material_type, str_to_print_type,
+    str_to_status_type,
+};
 
 /* PRIVATE TYPES AND VARIABLES */
 /* PUBLIC TYPES AND VARIABLES */
@@ -16,15 +20,28 @@ pub struct DatabaseSQLiteImpl {
 /* PRIVATE FUNCTIONS */
 fn write_evaluation_to_db(
     db_conn: &Connection,
+    date: &str,
     name: &str,
     email: &str,
     copies_nbr: u32,
     file_name: &str,
     price: f64,
     material_type: &str,
+    print_type: &str,
+    status: &str,
 ) -> io::Result<()> {
-    let params = rusqlite::params![name, email, copies_nbr, file_name, price, material_type];
-    let sql = "INSERT INTO Orders (name, email, copies_nbr, file_name, price, material_type) VALUES (?1, ?2, ?3, ?4, ?5, ?6)";
+    let params = rusqlite::params![
+        date,
+        name,
+        email,
+        copies_nbr,
+        file_name,
+        price,
+        material_type,
+        print_type,
+        status
+    ];
+    let sql = "INSERT INTO Orders (date, name, email, copies_nbr, file_name, price, material_type, print_type, status) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)";
     match db_conn.execute(sql, params) {
         Ok(_) => Ok(()),
         Err(_) => Err(io::Error::new(
@@ -34,27 +51,21 @@ fn write_evaluation_to_db(
     }
 }
 
-fn str_to_print_material_type(material: &str) -> Result<PrintMaterialType, &'static str> {
-    match material {
-        "PLA" => Ok(PrintMaterialType::PLA),
-        "PET" => Ok(PrintMaterialType::PET),
-        "ASA" => Ok(PrintMaterialType::ASA),
-        _ => Err("Unknown material type"),
-    }
-}
-
 /* PUBLIC FUNCTIONS */
 impl DatabaseInterfaceImpl for DatabaseSQLiteImpl {
     fn initialize_db(&self, db_name: &str) -> io::Result<()> {
         let conn = Connection::open(db_name).expect("Failed to open database");
         conn.execute(
             "create table if not exists Orders (
+            date datetime not null,
             name text not null,
             email text not null,
             copies_nbr integer not null,
             file_name text not null,
             price REAL not null,
-            material_type text not null
+            material_type text not null,
+            print_type text not null,
+            status text not null
             )",
             [],
         )
@@ -74,7 +85,7 @@ impl DatabaseInterfaceImpl for DatabaseSQLiteImpl {
         })?;
 
         let mut stmt = conn
-            .prepare("SELECT name, email, copies_nbr, file_name, price, material_type FROM Orders")
+            .prepare("SELECT date, name, email, copies_nbr, file_name, price, material_type, print_type, status FROM Orders")
             .map_err(|e| {
                 io::Error::new(
                     io::ErrorKind::Other,
@@ -83,11 +94,23 @@ impl DatabaseInterfaceImpl for DatabaseSQLiteImpl {
             })?;
         let order_iter = stmt
             .query_map([], |row| {
-                let material_type_str: String = row.get(5)?;
+                let date_str: String = row.get(0)?;
+                let date = datetime_to_chrono(&date_str);
+                if date.is_err() {
+                    return Err(rusqlite::Error::FromSqlConversionFailure(
+                        0,
+                        rusqlite::types::Type::Text,
+                        Box::new(std::io::Error::new(
+                            std::io::ErrorKind::InvalidData,
+                            "Wrong date format",
+                        )),
+                    ));
+                };
+                let material_type_str: String = row.get(6)?;
                 let material_type = str_to_print_material_type(&material_type_str);
                 if material_type.is_err() {
                     return Err(rusqlite::Error::FromSqlConversionFailure(
-                        5,
+                        6,
                         rusqlite::types::Type::Text,
                         Box::new(std::io::Error::new(
                             std::io::ErrorKind::InvalidData,
@@ -95,13 +118,40 @@ impl DatabaseInterfaceImpl for DatabaseSQLiteImpl {
                         )),
                     ));
                 };
+                let print_type_str: String = row.get(7)?;
+                let print_type = str_to_print_type(&print_type_str);
+                if print_type.is_err() {
+                    return Err(rusqlite::Error::FromSqlConversionFailure(
+                        8,
+                        rusqlite::types::Type::Text,
+                        Box::new(std::io::Error::new(
+                            std::io::ErrorKind::InvalidData,
+                            "Unknown print type",
+                        )),
+                    ));
+                };
+                let status_str: String = row.get(8)?;
+                let status = str_to_status_type(&status_str);
+                if status.is_err() {
+                    return Err(rusqlite::Error::FromSqlConversionFailure(
+                        7,
+                        rusqlite::types::Type::Text,
+                        Box::new(std::io::Error::new(
+                            std::io::ErrorKind::InvalidData,
+                            "Unknown status type",
+                        )),
+                    ));
+                };
                 Ok(EvaluationResult {
-                    name: row.get(0)?,
-                    email: row.get(1)?,
-                    copies_nbr: row.get(2)?,
-                    file_name: row.get(3)?,
-                    price: row.get(4)?,
+                    date: date.unwrap(),
+                    name: row.get(1)?,
+                    email: row.get(2)?,
+                    copies_nbr: row.get(3)?,
+                    file_name: row.get(4)?,
+                    price: row.get(5)?,
                     material_type: material_type.unwrap(),
+                    print_type: print_type.unwrap(),
+                    status: status.unwrap(),
                 })
             })
             .map_err(|e| {
@@ -130,12 +180,15 @@ impl DatabaseInterfaceImpl for DatabaseSQLiteImpl {
         })?;
         return write_evaluation_to_db(
             conn,
+            chrono_to_datetime(&eval_result.date).as_str(),
             eval_result.name.as_str(),
             eval_result.email.as_str(),
             eval_result.copies_nbr,
             eval_result.file_name.as_str(),
             eval_result.price,
             eval_result.material_type.to_string().as_str(),
+            eval_result.print_type.to_string().as_str(),
+            StatusType::New.to_string().as_str(),
         );
     }
 }

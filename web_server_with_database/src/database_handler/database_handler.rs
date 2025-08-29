@@ -73,7 +73,7 @@ pub fn add_evaluation_to_db(slicer_evaluation_result: &EvaluationResult) -> Resu
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::common_utils::global_types::PrintMaterialType;
+    use crate::common_utils::global_types::{PrintMaterialType, StatusType};
     use crate::database_handler::database_mock::DatabaseMockImpl;
 
     /// Helper function to reset the global state
@@ -92,12 +92,14 @@ mod tests {
     fn test_add_evaluation_to_db() {
         reset_state_and_setup_mocked_interface();
         let evaluation = EvaluationResult {
+            date: chrono::Utc::now(),
             name: "John Doe".to_string(),
             email: "john.doe@example.com".to_string(),
             copies_nbr: 1,
             file_name: "file.stl".to_string(),
             price: 100.0,
             material_type: PrintMaterialType::PLA,
+            status: StatusType::New,
         };
         let result = add_evaluation_to_db(&evaluation);
         assert!(result.is_ok());

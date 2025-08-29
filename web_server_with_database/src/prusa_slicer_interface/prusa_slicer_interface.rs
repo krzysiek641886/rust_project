@@ -6,7 +6,7 @@ use std::sync::Mutex;
 /* IMPORTS FROM OTHER MODULES */
 use crate::common_utils::global_traits::SlicerInterfaceImpl;
 use crate::common_utils::global_types::{
-    EvaluationResult, PrinterConfiguration, SubmittedOrderData,
+    EvaluationResult, PrinterConfiguration, StatusType, SubmittedOrderData,
 };
 use crate::prusa_slicer_interface::prusa_slicer_cli::PrusaSlicerCli;
 use crate::prusa_slicer_interface::prusa_slicer_price_calculator::calculate_the_price;
@@ -96,6 +96,7 @@ pub fn initialize_prusa_slicer_if(
 }
 
 pub fn get_prusa_slicer_evaluation(order: &SubmittedOrderData) -> EvaluationResult {
+    let current_utc_time = chrono::Utc::now();
     let prusa_path = &*SLICER_IF_STATE.slicer_exec_path.lock().unwrap();
     let workspace_path = &*SLICER_IF_STATE.ws_path.lock().unwrap();
     let slicer_interface_lock = SLICER_IF_STATE.slicer_interface.lock().unwrap();
@@ -106,13 +107,17 @@ pub fn get_prusa_slicer_evaluation(order: &SubmittedOrderData) -> EvaluationResu
     );
     let printer_configuration = SLICER_IF_STATE.printer_configuration.lock().unwrap();
     let price = calculate_the_price(&printer_configuration, print_params, order.copies_nbr);
+
     EvaluationResult {
+        date: current_utc_time,
         name: order.name.clone(),
         email: order.email.clone(),
         copies_nbr: order.copies_nbr,
         file_name: order.file_name.clone(),
         price,
         material_type: order.material_type.clone(),
+        print_type: order.print_type.clone(),
+        status: StatusType::New,
     }
 }
 

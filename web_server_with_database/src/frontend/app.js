@@ -23,6 +23,10 @@ function createForm() {
                 <option value="PET">PET</option>
                 <option value="ASA">ASA</option>
             </select><br>
+            <label for="print_type">Print type:</label>
+            <select id="print_type" name="print_type" required>
+                <option value="TBA">TBA</option>
+            </select><br>
             <label for="file">Choose file to upload:</label>
             <input type="file" id="file" name="file" required>
             <button type="submit" id="upload-button">Upload</button>
@@ -54,6 +58,7 @@ function createForm() {
             file_name: file.name,
             nbr_of_chunks: nbrTotalChunks,
             material_type: formData.get("material_type"),
+            print_type: formData.get("print_type"),
         };
 
         const arrayBufferChunks = [];

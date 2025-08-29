@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
+use chrono;
 
 /* PUBLIC TYPES */
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -7,6 +8,19 @@ pub enum PrintMaterialType {
     PLA,
     PET,
     ASA,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub enum StatusType {
+    New,
+    InProgress,
+    Completed,
+    Canceled,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub enum PrintType {
+    TBA,
 }
 
 impl Display for PrintMaterialType {
@@ -19,6 +33,25 @@ impl Display for PrintMaterialType {
     }
 }
 
+impl Display for StatusType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            StatusType::New => write!(f, "New"),
+            StatusType::InProgress => write!(f, "InProgress"),
+            StatusType::Completed => write!(f, "Completed"),
+            StatusType::Canceled => write!(f, "Canceled"),
+        }
+    }
+}
+
+impl Display for PrintType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            PrintType::TBA => write!(f, "TBA"),
+        }
+    }
+}
+
 #[derive(Clone, Debug, Deserialize)]
 pub struct SubmittedOrderData {
     pub name: String,
@@ -26,16 +59,20 @@ pub struct SubmittedOrderData {
     pub copies_nbr: u32,
     pub file_name: String,
     pub nbr_of_chunks: u32,
+    pub print_type: PrintType,
     pub material_type: PrintMaterialType,
 }
 
 pub struct EvaluationResult {
+    pub date: chrono::DateTime<chrono::Utc>,
     pub name: String,
     pub email: String,
     pub copies_nbr: u32,
     pub file_name: String,
     pub price: f64,
     pub material_type: PrintMaterialType,
+    pub print_type: PrintType,
+    pub status: StatusType,
 }
 
 pub struct EvaluatedPrintingParameters {
