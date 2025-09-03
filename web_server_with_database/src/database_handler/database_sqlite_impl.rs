@@ -1,7 +1,7 @@
 /* IMPORTS FROM LIBRARIES */
 use rusqlite::Connection;
 use std::io;
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 
 /* IMPORTS FROM OTHER MODULES */
 use crate::common_utils::global_traits::DatabaseInterfaceImpl;
@@ -14,7 +14,7 @@ use crate::database_handler::database_type_conversions::{
 /* PRIVATE TYPES AND VARIABLES */
 /* PUBLIC TYPES AND VARIABLES */
 pub struct DatabaseSQLiteImpl {
-    pub db_conn: Mutex<Option<Connection>>,
+    pub db_conn: Arc<Mutex<Option<Connection>>>,
 }
 
 /* PRIVATE FUNCTIONS */
@@ -51,7 +51,11 @@ fn write_evaluation_to_db(
     }
 }
 
-fn update_order_status_in_db(conn: &Connection, datetime: &str, new_status: &str) -> io::Result<()> {
+fn update_order_status_in_db(
+    conn: &Connection,
+    datetime: &str,
+    new_status: &str,
+) -> io::Result<()> {
     // Handle case where datetime ends with ' UTC'
     let datetime: &str = &datetime[0..19];
 
@@ -64,6 +68,78 @@ fn update_order_status_in_db(conn: &Connection, datetime: &str, new_status: &str
             format!("Failed to update order status: {}", e),
         )),
     }
+}
+
+fn move_completed_orders_to_archive(db_conn: &Mutex<Option<Connection>>) {
+    let guard = match db_conn.lock() {
+        Ok(guard) => guard,
+        Err(_) => {
+            println!("Failed to obtain database lock");
+            return;
+        }
+    };
+
+    let conn = match guard.as_ref() {
+        Some(conn) => conn,
+        None => {
+            println!("Database connection is not initialized");
+            return;
+        }
+    };
+    // Create archive table if it doesn't exist
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS CompletedOrders (
+            date datetime not null,
+            name text not null,
+            email text not null,
+            copies_nbr integer not null,
+            file_name text not null,
+            price REAL not null,
+            material_type text not null,
+            print_type text not null,
+            status text not null
+        )",
+        [],
+    )
+    .map_err(|e| {
+        io::Error::new(
+            io::ErrorKind::Other,
+            format!("Failed to create archive table: {}", e),
+        )
+    })
+    .unwrap();
+
+    // Move completed orders to archive
+    conn.execute(
+        "INSERT INTO CompletedOrders SELECT * FROM Orders WHERE status = ?1 OR status = ?2",
+        [
+            StatusType::Canceled.to_string().as_str(),
+            StatusType::Completed.to_string().as_str(),
+        ],
+    )
+    .map_err(|e| {
+        io::Error::new(
+            io::ErrorKind::Other,
+            format!("Failed to archive completed orders: {}", e),
+        )
+    })
+    .unwrap();
+
+    // Now delete the archived orders from the original table
+    conn.execute(
+        "DELETE FROM Orders WHERE status = ?1 OR status = ?2",
+        [
+            StatusType::Completed.to_string().as_str(),
+            StatusType::Canceled.to_string().as_str(),
+        ],
+    )
+    .map_err(|e| {
+        io::Error::new(
+            io::ErrorKind::Other,
+            format!("Failed to archive completed orders: {}", e),
+        )
+    })
+    .unwrap();
 }
 
 /* PUBLIC FUNCTIONS */
@@ -215,6 +291,15 @@ impl DatabaseInterfaceImpl for DatabaseSQLiteImpl {
                 "Database connection is not initialized",
             )
         })?;
-        return update_order_status_in_db(conn, datetime, new_status);
+        let update_result = update_order_status_in_db(conn, datetime, new_status);
+        if update_result.is_ok() {
+            // Clone the Arc<Mutex> to pass it to the new thread
+            let db_conn_clone = self.db_conn.clone();
+            // Spawn a new thread to move completed orders to archive
+            std::thread::spawn(move || {
+                move_completed_orders_to_archive(&db_conn_clone);
+            });
+        }
+        return update_result;
     }
 }

@@ -16,7 +16,7 @@ struct State {
 lazy_static! {
     static ref DB_HANDLER_STATE: State = State {
         db_impl: Mutex::new(Box::new(DatabaseSQLiteImpl {
-            db_conn: Mutex::new(None)
+            db_conn: std::sync::Arc::new(Mutex::new(None))
         })),
     };
 }
