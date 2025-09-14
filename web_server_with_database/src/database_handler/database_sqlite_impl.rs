@@ -1,7 +1,7 @@
 /* IMPORTS FROM LIBRARIES */
 use rusqlite::Connection;
 use std::io;
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 
 /* IMPORTS FROM OTHER MODULES */
 use crate::common_utils::global_traits::DatabaseInterfaceImpl;
@@ -14,10 +14,96 @@ use crate::database_handler::database_type_conversions::{
 /* PRIVATE TYPES AND VARIABLES */
 /* PUBLIC TYPES AND VARIABLES */
 pub struct DatabaseSQLiteImpl {
-    pub db_conn: Mutex<Option<Connection>>,
+    pub db_conn: Arc<Mutex<Option<Connection>>>,
 }
 
 /* PRIVATE FUNCTIONS */
+fn read_orders_from_table(
+    conn: &Connection,
+    table_name: &str,
+) -> io::Result<Vec<EvaluationResult>> {
+    let query = format!("SELECT date, name, email, copies_nbr, file_name, price, material_type, print_type, status FROM {} ORDER BY date DESC", table_name);
+    let mut stmt = conn.prepare(&query).map_err(|e| {
+        io::Error::new(
+            io::ErrorKind::Other,
+            format!("Failed to prepare statement: {}", e),
+        )
+    })?;
+    let order_iter = stmt
+        .query_map([], |row| {
+            let date_str: String = row.get(0)?;
+            let date = datetime_to_chrono(&date_str);
+            if date.is_err() {
+                return Err(rusqlite::Error::FromSqlConversionFailure(
+                    0,
+                    rusqlite::types::Type::Text,
+                    Box::new(std::io::Error::new(
+                        std::io::ErrorKind::InvalidData,
+                        "Wrong date format",
+                    )),
+                ));
+            };
+            let material_type_str: String = row.get(6)?;
+            let material_type = str_to_print_material_type(&material_type_str);
+            if material_type.is_err() {
+                return Err(rusqlite::Error::FromSqlConversionFailure(
+                    6,
+                    rusqlite::types::Type::Text,
+                    Box::new(std::io::Error::new(
+                        std::io::ErrorKind::InvalidData,
+                        "Unknown material type",
+                    )),
+                ));
+            };
+            let print_type_str: String = row.get(7)?;
+            let print_type = str_to_print_type(&print_type_str);
+            if print_type.is_err() {
+                return Err(rusqlite::Error::FromSqlConversionFailure(
+                    8,
+                    rusqlite::types::Type::Text,
+                    Box::new(std::io::Error::new(
+                        std::io::ErrorKind::InvalidData,
+                        "Unknown print type",
+                    )),
+                ));
+            };
+            let status_str: String = row.get(8)?;
+            let status = str_to_status_type(&status_str);
+            if status.is_err() {
+                return Err(rusqlite::Error::FromSqlConversionFailure(
+                    7,
+                    rusqlite::types::Type::Text,
+                    Box::new(std::io::Error::new(
+                        std::io::ErrorKind::InvalidData,
+                        "Unknown status type",
+                    )),
+                ));
+            };
+            Ok(EvaluationResult {
+                date: date.unwrap(),
+                name: row.get(1)?,
+                email: row.get(2)?,
+                copies_nbr: row.get(3)?,
+                file_name: row.get(4)?,
+                price: row.get(5)?,
+                material_type: material_type.unwrap(),
+                print_type: print_type.unwrap(),
+                status: status.unwrap(),
+            })
+        })
+        .map_err(|e| {
+            io::Error::new(io::ErrorKind::Other, format!("Failed to query rows: {}", e))
+        })?;
+
+    let mut orders = Vec::new();
+    for order in order_iter {
+        orders.push(order.map_err(|e| {
+            io::Error::new(io::ErrorKind::Other, format!("Failed to map row: {}", e))
+        })?);
+    }
+    Ok(orders)
+}
+
 fn write_evaluation_to_db(
     db_conn: &Connection,
     date: &str,
@@ -51,19 +137,134 @@ fn write_evaluation_to_db(
     }
 }
 
-fn update_order_status_in_db(conn: &Connection, datetime: &str, new_status: &str) -> io::Result<()> {
+fn update_order_status_in_db(
+    conn: &Connection,
+    table_name: &str,
+    datetime: &str,
+    new_status: &str,
+) -> io::Result<()> {
     // Handle case where datetime ends with ' UTC'
     let datetime: &str = &datetime[0..19];
 
-    let sql = "UPDATE Orders SET status = ? WHERE date = ?";
+    let sql = format!("UPDATE {} SET status = ? WHERE date = ?", table_name);
     let params = [new_status, datetime];
-    match conn.execute(sql, params) {
+    match conn.execute(&sql, params) {
         Ok(_) => Ok(()),
         Err(e) => Err(io::Error::new(
             io::ErrorKind::Other,
             format!("Failed to update order status: {}", e),
         )),
     }
+}
+
+fn move_orders_between_tables(db_conn: &Mutex<Option<Connection>>) {
+    let guard = match db_conn.lock() {
+        Ok(guard) => guard,
+        Err(_) => {
+            println!("Failed to obtain database lock");
+            return;
+        }
+    };
+
+    let conn = match guard.as_ref() {
+        Some(conn) => conn,
+        None => {
+            println!("Database connection is not initialized");
+            return;
+        }
+    };
+    // Create archive table if it doesn't exist
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS CompletedOrders (
+            date datetime not null,
+            name text not null,
+            email text not null,
+            copies_nbr integer not null,
+            file_name text not null,
+            price REAL not null,
+            material_type text not null,
+            print_type text not null,
+            status text not null
+        )",
+        [],
+    )
+    .map_err(|e| {
+        io::Error::new(
+            io::ErrorKind::Other,
+            format!("Failed to create archive table: {}", e),
+        )
+    })
+    .unwrap();
+
+    // Move completed or canceled orders from Orders to CompletedOrders
+    conn.execute(
+        "INSERT INTO CompletedOrders SELECT * FROM Orders WHERE status = ?1 OR status = ?2",
+        [
+            StatusType::Canceled.to_string().as_str(),
+            StatusType::Completed.to_string().as_str(),
+        ],
+    )
+    .map_err(|e| {
+        io::Error::new(
+            io::ErrorKind::Other,
+            format!("Failed to move completed/canceled orders to archive: {}", e),
+        )
+    })
+    .unwrap();
+
+    // Delete the moved orders from the Orders table
+    conn.execute(
+        "DELETE FROM Orders WHERE status = ?1 OR status = ?2",
+        [
+            StatusType::Completed.to_string().as_str(),
+            StatusType::Canceled.to_string().as_str(),
+        ],
+    )
+    .map_err(|e| {
+        io::Error::new(
+            io::ErrorKind::Other,
+            format!("Failed to delete moved orders from Orders table: {}", e),
+        )
+    })
+    .unwrap();
+
+    // Move new or in-progress orders from CompletedOrders to Orders
+    conn.execute(
+        "INSERT INTO Orders SELECT * FROM CompletedOrders WHERE status = ?1 OR status = ?2",
+        [
+            StatusType::New.to_string().as_str(),
+            StatusType::InProgress.to_string().as_str(),
+        ],
+    )
+    .map_err(|e| {
+        io::Error::new(
+            io::ErrorKind::Other,
+            format!(
+                "Failed to move new/in-progress orders to Orders table: {}",
+                e
+            ),
+        )
+    })
+    .unwrap();
+
+    // Delete the moved orders from the CompletedOrders table
+    conn.execute(
+        "DELETE FROM CompletedOrders WHERE status = ?1 OR status = ?2",
+        [
+            StatusType::New.to_string().as_str(),
+            StatusType::InProgress.to_string().as_str(),
+        ],
+    )
+    .map_err(|e| {
+        io::Error::new(
+            io::ErrorKind::Other,
+            format!(
+                "Failed to delete moved orders from CompletedOrders table: {}",
+                e
+            ),
+        )
+    })
+    .unwrap();
 }
 
 /* PUBLIC FUNCTIONS */
@@ -99,90 +300,19 @@ impl DatabaseInterfaceImpl for DatabaseSQLiteImpl {
             )
         })?;
 
-        let mut stmt = conn
-            .prepare("SELECT date, name, email, copies_nbr, file_name, price, material_type, print_type, status FROM Orders")
-            .map_err(|e| {
-                io::Error::new(
-                    io::ErrorKind::Other,
-                    format!("Failed to prepare statement: {}", e),
-                )
-            })?;
-        let order_iter = stmt
-            .query_map([], |row| {
-                let date_str: String = row.get(0)?;
-                let date = datetime_to_chrono(&date_str);
-                if date.is_err() {
-                    return Err(rusqlite::Error::FromSqlConversionFailure(
-                        0,
-                        rusqlite::types::Type::Text,
-                        Box::new(std::io::Error::new(
-                            std::io::ErrorKind::InvalidData,
-                            "Wrong date format",
-                        )),
-                    ));
-                };
-                let material_type_str: String = row.get(6)?;
-                let material_type = str_to_print_material_type(&material_type_str);
-                if material_type.is_err() {
-                    return Err(rusqlite::Error::FromSqlConversionFailure(
-                        6,
-                        rusqlite::types::Type::Text,
-                        Box::new(std::io::Error::new(
-                            std::io::ErrorKind::InvalidData,
-                            "Unknown material type",
-                        )),
-                    ));
-                };
-                let print_type_str: String = row.get(7)?;
-                let print_type = str_to_print_type(&print_type_str);
-                if print_type.is_err() {
-                    return Err(rusqlite::Error::FromSqlConversionFailure(
-                        8,
-                        rusqlite::types::Type::Text,
-                        Box::new(std::io::Error::new(
-                            std::io::ErrorKind::InvalidData,
-                            "Unknown print type",
-                        )),
-                    ));
-                };
-                let status_str: String = row.get(8)?;
-                let status = str_to_status_type(&status_str);
-                if status.is_err() {
-                    return Err(rusqlite::Error::FromSqlConversionFailure(
-                        7,
-                        rusqlite::types::Type::Text,
-                        Box::new(std::io::Error::new(
-                            std::io::ErrorKind::InvalidData,
-                            "Unknown status type",
-                        )),
-                    ));
-                };
-                Ok(EvaluationResult {
-                    date: date.unwrap(),
-                    name: row.get(1)?,
-                    email: row.get(2)?,
-                    copies_nbr: row.get(3)?,
-                    file_name: row.get(4)?,
-                    price: row.get(5)?,
-                    material_type: material_type.unwrap(),
-                    print_type: print_type.unwrap(),
-                    status: status.unwrap(),
-                })
-            })
-            .map_err(|e| {
-                io::Error::new(io::ErrorKind::Other, format!("Failed to query rows: {}", e))
-            })?;
+        read_orders_from_table(conn, "Orders")
+    }
 
-        let mut orders = Vec::new();
-        for order in order_iter {
-            orders.insert(
-                0,
-                order.map_err(|e| {
-                    io::Error::new(io::ErrorKind::Other, format!("Failed to map row: {}", e))
-                })?,
-            );
-        }
-        Ok(orders)
+    fn read_completed_orders_from_db(&self) -> io::Result<Vec<EvaluationResult>> {
+        let db_conn = self.db_conn.lock().unwrap();
+        let conn = db_conn.as_ref().ok_or_else(|| {
+            io::Error::new(
+                io::ErrorKind::NotConnected,
+                "Database connection is not initialized",
+            )
+        })?;
+
+        read_orders_from_table(conn, "CompletedOrders")
     }
 
     fn add_evaluation_to_db(&self, eval_result: &EvaluationResult) -> io::Result<()> {
@@ -207,7 +337,12 @@ impl DatabaseInterfaceImpl for DatabaseSQLiteImpl {
         );
     }
 
-    fn modify_order_in_database(&self, datetime: &str, new_status: &str) -> io::Result<()> {
+    fn modify_order_in_database(
+        &self,
+        table_name: &str,
+        datetime: &str,
+        new_status: &str,
+    ) -> io::Result<()> {
         let db_conn = self.db_conn.lock().unwrap();
         let conn = db_conn.as_ref().ok_or_else(|| {
             io::Error::new(
@@ -215,6 +350,15 @@ impl DatabaseInterfaceImpl for DatabaseSQLiteImpl {
                 "Database connection is not initialized",
             )
         })?;
-        return update_order_status_in_db(conn, datetime, new_status);
+        let update_result = update_order_status_in_db(conn, table_name, datetime, new_status);
+        if update_result.is_ok() {
+            // Clone the Arc<Mutex> to pass it to the new thread
+            let db_conn_clone = self.db_conn.clone();
+            // Spawn a new thread to move completed orders to archive
+            std::thread::spawn(move || {
+                move_orders_between_tables(&db_conn_clone);
+            });
+        }
+        return update_result;
     }
 }

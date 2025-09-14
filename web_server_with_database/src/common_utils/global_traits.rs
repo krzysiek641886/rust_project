@@ -18,8 +18,14 @@ pub trait SlicerInterfaceImpl: Send + Sync {
 pub trait DatabaseInterfaceImpl: Send + Sync {
     fn initialize_db(&self, db_name: &str) -> Result<()>;
     fn read_orders_from_db(&self) -> Result<Vec<EvaluationResult>>;
+    fn read_completed_orders_from_db(&self) -> Result<Vec<EvaluationResult>>;
     fn add_evaluation_to_db(&self, eval_result: &EvaluationResult) -> Result<()>;
-    fn modify_order_in_database(&self, order_id: &str, new_status: &str) -> Result<()>;
+    fn modify_order_in_database(
+        &self,
+        table_name: &str,
+        order_id: &str,
+        new_status: &str,
+    ) -> Result<()>;
 }
 
 pub trait WebSocketInterfaceImpl {

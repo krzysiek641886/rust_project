@@ -1,4 +1,3 @@
-
 export default function createRetrievedOrdersTable() {
     const formContainer = document.getElementById("results-container");
     formContainer.innerHTML = `
@@ -24,23 +23,36 @@ export default function createRetrievedOrdersTable() {
     // Add event listener for the request orders button
     const requestOrdersBtn = document.getElementById("request-orders-btn");
     requestOrdersBtn.addEventListener("click", async function () {
+        const tbody = document.getElementById("orders-tbody");
+        tbody.innerHTML = ""; // Clear existing rows
+
         try {
             const response = await fetch("/api/orders");
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
             const orders = await response.json();
-            populateOrdersTable(orders);
+            populateOrdersTable(orders, tbody, "/api/orders/modify");
         } catch (error) {
             console.error("Error fetching orders:", error);
+            alert("Failed to fetch orders. Please try again.");
+        }
+
+        try {
+            const response = await fetch("/api/completed_orders");
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const orders = await response.json();
+            populateOrdersTable(orders, tbody, "/api/completed_orders/modify");
+        } catch (error) {
+            console.error("Error fetching completed orders:", error);
             alert("Failed to fetch orders. Please try again.");
         }
     });
 }
 
-function populateOrdersTable(orders) {
-    const tbody = document.getElementById("orders-tbody");
-    tbody.innerHTML = ""; // Clear existing rows
+function populateOrdersTable(orders, table_body, modify_api_url) {
 
     orders.forEach(order => {
         const row = document.createElement("tr");
@@ -80,14 +92,14 @@ function populateOrdersTable(orders) {
         row.appendChild(printTypeTd);
 
         const statusTd = document.createElement("td");
-        createStatusDropdown(statusTd, order);
+        createStatusDropdown(statusTd, order, modify_api_url);
         row.appendChild(statusTd);
 
-        tbody.appendChild(row);
+        table_body.appendChild(row);
     });
 }
 
-function createStatusDropdown(parent, order) {
+function createStatusDropdown(parent, order, modify_api_url) {
     const statusSelect = document.createElement("select");
     statusSelect.className = "status-select";
     statusSelect.dataset.orderId = order.id;
@@ -105,7 +117,7 @@ function createStatusDropdown(parent, order) {
 
     statusSelect.addEventListener("change", async function () {
         try {
-            const response = await fetch(`/api/orders/modify`, {
+            const response = await fetch(modify_api_url, {
                 method: "PUT",
                 headers: {
                     "Content-Type": "application/json"

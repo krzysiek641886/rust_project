@@ -8,7 +8,10 @@ use std::sync::Mutex;
 use crate::api::web_socket_impl::PriceEvaluationWebSocketImpl;
 use crate::common_utils::global_traits::WebSocketInterfaceImpl;
 use crate::common_utils::global_types::{EvaluationResult, PrintMaterialType};
-use crate::database_handler::{add_evaluation_to_db, read_orders_from_db, modify_order_in_database};
+use crate::database_handler::{
+    add_evaluation_to_db, modify_completed_order_in_database, modify_new_order_in_database,
+    read_completed_orders_from_db, read_orders_from_db,
+};
 use crate::prusa_slicer_interface::get_prusa_slicer_evaluation;
 use serde::Deserialize;
 
@@ -123,6 +126,42 @@ pub async fn get_orders_handler() -> impl Responder {
     }
 }
 
+pub async fn get_completed_orders_handler() -> impl Responder {
+    #[derive(Serialize)]
+    struct Order {
+        date: String,
+        name: String,
+        email: String,
+        copies_nbr: u32,
+        file_name: String,
+        price: f64,
+        material_type: PrintMaterialType,
+        print_type: String,
+        status: String,
+    }
+    match read_completed_orders_from_db() {
+        Ok(orders) => {
+            let orders_json: Vec<Order> = orders
+                .into_iter()
+                .map(|order: EvaluationResult| Order {
+                    date: order.date.to_string(),
+                    name: order.name,
+                    email: order.email,
+                    copies_nbr: order.copies_nbr,
+                    file_name: order.file_name,
+                    price: order.price,
+                    material_type: order.material_type,
+                    print_type: order.print_type.to_string(),
+                    status: order.status.to_string(),
+                })
+                .collect();
+            HttpResponse::Ok().json(orders_json)
+        }
+        Err(e) => HttpResponse::InternalServerError()
+            .body(format!("Failed to retrieve completed orders: {}", e)),
+    }
+}
+
 #[derive(Deserialize)]
 pub struct OrderModification {
     datetime: String,
@@ -132,7 +171,7 @@ pub struct OrderModification {
 
 pub async fn modify_order_handler(payload: web::Json<OrderModification>) -> impl Responder {
     // Process the modification
-    match modify_order_in_database(&payload.datetime, &payload.new_status) {
+    match modify_new_order_in_database(&payload.datetime, &payload.new_status) {
         Ok(_) => {
             // For now, just return success (replace with actual implementation)
             HttpResponse::Ok().json(serde_json::json!({
@@ -146,5 +185,22 @@ pub async fn modify_order_handler(payload: web::Json<OrderModification>) -> impl
     }
 }
 
+pub async fn modify_completed_order_handler(
+    payload: web::Json<OrderModification>,
+) -> impl Responder {
+    // Process the modification
+    match modify_completed_order_in_database(&payload.datetime, &payload.new_status) {
+        Ok(_) => {
+            // For now, just return success (replace with actual implementation)
+            HttpResponse::Ok().json(serde_json::json!({
+                "success": true,
+                "message": "Order modified successfully",
+            }))
+        }
+        Err(e) => {
+            HttpResponse::InternalServerError().body(format!("Failed to modify order: {}", e))
+        }
+    }
+}
 
 /* TESTS */
