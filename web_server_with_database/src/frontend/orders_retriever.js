@@ -1,4 +1,3 @@
-
 export default function createRetrievedOrdersTable() {
     const formContainer = document.getElementById("results-container");
     formContainer.innerHTML = `
@@ -24,23 +23,36 @@ export default function createRetrievedOrdersTable() {
     // Add event listener for the request orders button
     const requestOrdersBtn = document.getElementById("request-orders-btn");
     requestOrdersBtn.addEventListener("click", async function () {
+        const tbody = document.getElementById("orders-tbody");
+        tbody.innerHTML = ""; // Clear existing rows
+
         try {
             const response = await fetch("/api/orders");
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
             const orders = await response.json();
-            populateOrdersTable(orders);
+            populateOrdersTable(orders, tbody, true);
         } catch (error) {
             console.error("Error fetching orders:", error);
+            alert("Failed to fetch orders. Please try again.");
+        }
+
+        try {
+            const response = await fetch("/api/completed_orders");
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const orders = await response.json();
+            populateOrdersTable(orders, tbody, false);
+        } catch (error) {
+            console.error("Error fetching completed orders:", error);
             alert("Failed to fetch orders. Please try again.");
         }
     });
 }
 
-function populateOrdersTable(orders) {
-    const tbody = document.getElementById("orders-tbody");
-    tbody.innerHTML = ""; // Clear existing rows
+function populateOrdersTable(orders, table_body, add_dropdown = true) {
 
     orders.forEach(order => {
         const row = document.createElement("tr");
@@ -80,10 +92,12 @@ function populateOrdersTable(orders) {
         row.appendChild(printTypeTd);
 
         const statusTd = document.createElement("td");
-        createStatusDropdown(statusTd, order);
+        // If add_dropdown is true, create a dropdown for status otherwise just display status
+        !add_dropdown && (statusTd.textContent = order.status);
+        add_dropdown && createStatusDropdown(statusTd, order);
         row.appendChild(statusTd);
 
-        tbody.appendChild(row);
+        table_body.appendChild(row);
     });
 }
 
