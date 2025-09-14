@@ -196,7 +196,7 @@ fn move_orders_between_tables(db_conn: &Mutex<Option<Connection>>) {
     })
     .unwrap();
 
-    // Move completed orders to archive
+    // Move completed or canceled orders from Orders to CompletedOrders
     conn.execute(
         "INSERT INTO CompletedOrders SELECT * FROM Orders WHERE status = ?1 OR status = ?2",
         [
@@ -207,12 +207,12 @@ fn move_orders_between_tables(db_conn: &Mutex<Option<Connection>>) {
     .map_err(|e| {
         io::Error::new(
             io::ErrorKind::Other,
-            format!("Failed to archive completed orders: {}", e),
+            format!("Failed to move completed/canceled orders to archive: {}", e),
         )
     })
     .unwrap();
 
-    // Now delete the archived orders from the original table
+    // Delete the moved orders from the Orders table
     conn.execute(
         "DELETE FROM Orders WHERE status = ?1 OR status = ?2",
         [
@@ -223,7 +223,45 @@ fn move_orders_between_tables(db_conn: &Mutex<Option<Connection>>) {
     .map_err(|e| {
         io::Error::new(
             io::ErrorKind::Other,
-            format!("Failed to archive completed orders: {}", e),
+            format!("Failed to delete moved orders from Orders table: {}", e),
+        )
+    })
+    .unwrap();
+
+    // Move new or in-progress orders from CompletedOrders to Orders
+    conn.execute(
+        "INSERT INTO Orders SELECT * FROM CompletedOrders WHERE status = ?1 OR status = ?2",
+        [
+            StatusType::New.to_string().as_str(),
+            StatusType::InProgress.to_string().as_str(),
+        ],
+    )
+    .map_err(|e| {
+        io::Error::new(
+            io::ErrorKind::Other,
+            format!(
+                "Failed to move new/in-progress orders to Orders table: {}",
+                e
+            ),
+        )
+    })
+    .unwrap();
+
+    // Delete the moved orders from the CompletedOrders table
+    conn.execute(
+        "DELETE FROM CompletedOrders WHERE status = ?1 OR status = ?2",
+        [
+            StatusType::New.to_string().as_str(),
+            StatusType::InProgress.to_string().as_str(),
+        ],
+    )
+    .map_err(|e| {
+        io::Error::new(
+            io::ErrorKind::Other,
+            format!(
+                "Failed to delete moved orders from CompletedOrders table: {}",
+                e
+            ),
         )
     })
     .unwrap();

@@ -32,7 +32,7 @@ export default function createRetrievedOrdersTable() {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
             const orders = await response.json();
-            populateOrdersTable(orders, tbody, true);
+            populateOrdersTable(orders, tbody, "/api/orders/modify");
         } catch (error) {
             console.error("Error fetching orders:", error);
             alert("Failed to fetch orders. Please try again.");
@@ -44,7 +44,7 @@ export default function createRetrievedOrdersTable() {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
             const orders = await response.json();
-            populateOrdersTable(orders, tbody, false);
+            populateOrdersTable(orders, tbody, "/api/completed_orders/modify");
         } catch (error) {
             console.error("Error fetching completed orders:", error);
             alert("Failed to fetch orders. Please try again.");
@@ -52,7 +52,7 @@ export default function createRetrievedOrdersTable() {
     });
 }
 
-function populateOrdersTable(orders, table_body, add_dropdown = true) {
+function populateOrdersTable(orders, table_body, modify_api_url) {
 
     orders.forEach(order => {
         const row = document.createElement("tr");
@@ -92,16 +92,14 @@ function populateOrdersTable(orders, table_body, add_dropdown = true) {
         row.appendChild(printTypeTd);
 
         const statusTd = document.createElement("td");
-        // If add_dropdown is true, create a dropdown for status otherwise just display status
-        !add_dropdown && (statusTd.textContent = order.status);
-        add_dropdown && createStatusDropdown(statusTd, order);
+        createStatusDropdown(statusTd, order, modify_api_url);
         row.appendChild(statusTd);
 
         table_body.appendChild(row);
     });
 }
 
-function createStatusDropdown(parent, order) {
+function createStatusDropdown(parent, order, modify_api_url) {
     const statusSelect = document.createElement("select");
     statusSelect.className = "status-select";
     statusSelect.dataset.orderId = order.id;
@@ -119,7 +117,7 @@ function createStatusDropdown(parent, order) {
 
     statusSelect.addEventListener("change", async function () {
         try {
-            const response = await fetch(`/api/orders/modify`, {
+            const response = await fetch(modify_api_url, {
                 method: "PUT",
                 headers: {
                     "Content-Type": "application/json"
