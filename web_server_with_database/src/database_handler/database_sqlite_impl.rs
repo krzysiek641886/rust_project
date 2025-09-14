@@ -22,7 +22,7 @@ fn read_orders_from_table(
     conn: &Connection,
     table_name: &str,
 ) -> io::Result<Vec<EvaluationResult>> {
-    let query = format!("SELECT date, name, email, copies_nbr, file_name, price, material_type, print_type, status FROM {}", table_name);
+    let query = format!("SELECT date, name, email, copies_nbr, file_name, price, material_type, print_type, status FROM {} ORDER BY date DESC", table_name);
     let mut stmt = conn.prepare(&query).map_err(|e| {
         io::Error::new(
             io::ErrorKind::Other,
@@ -97,8 +97,7 @@ fn read_orders_from_table(
 
     let mut orders = Vec::new();
     for order in order_iter {
-        orders.insert(
-            0,
+        orders.push(
             order.map_err(|e| {
                 io::Error::new(io::ErrorKind::Other, format!("Failed to map row: {}", e))
             })?,
