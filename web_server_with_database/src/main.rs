@@ -14,7 +14,8 @@ use std::sync::Mutex;
 /* IMPORTS FROM OTHER MODULES */
 use api::{
     app_init_status_handler, eval_result_websocket_handler, get_completed_orders_handler,
-    get_orders_handler, initialize_api_handler, modify_order_handler,
+    get_orders_handler, initialize_api_handler, modify_completed_order_handler,
+    modify_order_handler,
 };
 use database_handler::initialize_db;
 use prusa_slicer_interface::initialize_prusa_slicer_if;
@@ -96,6 +97,10 @@ async fn main() -> std::io::Result<()> {
             .route(
                 "/api/completed_orders",
                 web::get().to(get_completed_orders_handler),
+            )
+            .route(
+                "/api/completed_orders/modify",
+                web::put().to(modify_completed_order_handler),
             )
             .route(
                 "/api/websocket_evaluation",

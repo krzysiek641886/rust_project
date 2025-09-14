@@ -9,8 +9,8 @@ use crate::api::web_socket_impl::PriceEvaluationWebSocketImpl;
 use crate::common_utils::global_traits::WebSocketInterfaceImpl;
 use crate::common_utils::global_types::{EvaluationResult, PrintMaterialType};
 use crate::database_handler::{
-    add_evaluation_to_db, modify_order_in_database, read_completed_orders_from_db,
-    read_orders_from_db,
+    add_evaluation_to_db, modify_completed_order_in_database, modify_new_order_in_database,
+    read_completed_orders_from_db, read_orders_from_db,
 };
 use crate::prusa_slicer_interface::get_prusa_slicer_evaluation;
 use serde::Deserialize;
@@ -171,7 +171,25 @@ pub struct OrderModification {
 
 pub async fn modify_order_handler(payload: web::Json<OrderModification>) -> impl Responder {
     // Process the modification
-    match modify_order_in_database(&payload.datetime, &payload.new_status) {
+    match modify_new_order_in_database(&payload.datetime, &payload.new_status) {
+        Ok(_) => {
+            // For now, just return success (replace with actual implementation)
+            HttpResponse::Ok().json(serde_json::json!({
+                "success": true,
+                "message": "Order modified successfully",
+            }))
+        }
+        Err(e) => {
+            HttpResponse::InternalServerError().body(format!("Failed to modify order: {}", e))
+        }
+    }
+}
+
+pub async fn modify_completed_order_handler(
+    payload: web::Json<OrderModification>,
+) -> impl Responder {
+    // Process the modification
+    match modify_completed_order_in_database(&payload.datetime, &payload.new_status) {
         Ok(_) => {
             // For now, just return success (replace with actual implementation)
             HttpResponse::Ok().json(serde_json::json!({

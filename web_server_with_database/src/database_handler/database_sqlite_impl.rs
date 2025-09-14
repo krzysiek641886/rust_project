@@ -97,11 +97,9 @@ fn read_orders_from_table(
 
     let mut orders = Vec::new();
     for order in order_iter {
-        orders.push(
-            order.map_err(|e| {
-                io::Error::new(io::ErrorKind::Other, format!("Failed to map row: {}", e))
-            })?,
-        );
+        orders.push(order.map_err(|e| {
+            io::Error::new(io::ErrorKind::Other, format!("Failed to map row: {}", e))
+        })?);
     }
     Ok(orders)
 }
@@ -141,15 +139,16 @@ fn write_evaluation_to_db(
 
 fn update_order_status_in_db(
     conn: &Connection,
+    table_name: &str,
     datetime: &str,
     new_status: &str,
 ) -> io::Result<()> {
     // Handle case where datetime ends with ' UTC'
     let datetime: &str = &datetime[0..19];
 
-    let sql = "UPDATE Orders SET status = ? WHERE date = ?";
+    let sql = format!("UPDATE {} SET status = ? WHERE date = ?", table_name);
     let params = [new_status, datetime];
-    match conn.execute(sql, params) {
+    match conn.execute(&sql, params) {
         Ok(_) => Ok(()),
         Err(e) => Err(io::Error::new(
             io::ErrorKind::Other,
@@ -158,7 +157,7 @@ fn update_order_status_in_db(
     }
 }
 
-fn move_completed_orders_to_archive(db_conn: &Mutex<Option<Connection>>) {
+fn move_orders_between_tables(db_conn: &Mutex<Option<Connection>>) {
     let guard = match db_conn.lock() {
         Ok(guard) => guard,
         Err(_) => {
@@ -300,7 +299,12 @@ impl DatabaseInterfaceImpl for DatabaseSQLiteImpl {
         );
     }
 
-    fn modify_order_in_database(&self, datetime: &str, new_status: &str) -> io::Result<()> {
+    fn modify_order_in_database(
+        &self,
+        table_name: &str,
+        datetime: &str,
+        new_status: &str,
+    ) -> io::Result<()> {
         let db_conn = self.db_conn.lock().unwrap();
         let conn = db_conn.as_ref().ok_or_else(|| {
             io::Error::new(
@@ -308,13 +312,13 @@ impl DatabaseInterfaceImpl for DatabaseSQLiteImpl {
                 "Database connection is not initialized",
             )
         })?;
-        let update_result = update_order_status_in_db(conn, datetime, new_status);
+        let update_result = update_order_status_in_db(conn, table_name, datetime, new_status);
         if update_result.is_ok() {
             // Clone the Arc<Mutex> to pass it to the new thread
             let db_conn_clone = self.db_conn.clone();
             // Spawn a new thread to move completed orders to archive
             std::thread::spawn(move || {
-                move_completed_orders_to_archive(&db_conn_clone);
+                move_orders_between_tables(&db_conn_clone);
             });
         }
         return update_result;

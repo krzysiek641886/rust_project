@@ -74,9 +74,14 @@ pub fn add_evaluation_to_db(slicer_evaluation_result: &EvaluationResult) -> Resu
     return database_handler_impl.add_evaluation_to_db(slicer_evaluation_result);
 }
 
-pub fn modify_order_in_database(datetime: &str, new_status: &str) -> Result<()> {
+pub fn modify_new_order_in_database(datetime: &str, new_status: &str) -> Result<()> {
     let database_handler_impl = DB_HANDLER_STATE.db_impl.lock().unwrap();
-    return database_handler_impl.modify_order_in_database(datetime, new_status);
+    return database_handler_impl.modify_order_in_database("Orders", datetime, new_status);
+}
+
+pub fn modify_completed_order_in_database(datetime: &str, new_status: &str) -> Result<()> {
+    let database_handler_impl = DB_HANDLER_STATE.db_impl.lock().unwrap();
+    return database_handler_impl.modify_order_in_database("CompletedOrders", datetime, new_status);
 }
 
 /* TESTS */

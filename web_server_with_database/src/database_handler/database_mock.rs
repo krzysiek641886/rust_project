@@ -26,7 +26,12 @@ impl DatabaseInterfaceImpl for DatabaseMockImpl {
         Ok(())
     }
 
-    fn modify_order_in_database(&self, _order_id: &str, _new_status: &str) -> io::Result<()> {
+    fn modify_order_in_database(
+        &self,
+        _table_name: &str,
+        _order_id: &str,
+        _new_status: &str,
+    ) -> io::Result<()> {
         Ok(())
     }
 
