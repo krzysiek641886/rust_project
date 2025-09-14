@@ -57,33 +57,8 @@ pub fn read_orders_from_db() -> Result<Vec<EvaluationResult>> {
 }
 
 pub fn read_completed_orders_from_db() -> Result<Vec<EvaluationResult>> {
-    // Create a dummy vector of completed orders
-    let dummy_orders = vec![
-        EvaluationResult {
-            date: chrono::Utc::now(),
-            name: "Test User 1".to_string(),
-            email: "test1@example.com".to_string(),
-            copies_nbr: 2,
-            file_name: "completed_model1.stl".to_string(),
-            price: 75.50,
-            material_type: crate::common_utils::global_types::PrintMaterialType::PLA,
-            status: crate::common_utils::global_types::StatusType::Completed,
-            print_type: crate::common_utils::global_types::PrintType::TBA,
-        },
-        EvaluationResult {
-            date: chrono::Utc::now() - chrono::Duration::days(3),
-            name: "Test User 2".to_string(),
-            email: "test2@example.com".to_string(),
-            copies_nbr: 1,
-            file_name: "completed_model2.stl".to_string(),
-            price: 120.00,
-            material_type: crate::common_utils::global_types::PrintMaterialType::ASA,
-            status: crate::common_utils::global_types::StatusType::Completed,
-            print_type: crate::common_utils::global_types::PrintType::TBA,
-        },
-    ];
-
-    Ok(dummy_orders)
+    let database_handler_impl = DB_HANDLER_STATE.db_impl.lock().unwrap();
+    return database_handler_impl.read_completed_orders_from_db();
 }
 
 /**

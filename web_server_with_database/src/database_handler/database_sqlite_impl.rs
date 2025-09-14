@@ -18,6 +18,95 @@ pub struct DatabaseSQLiteImpl {
 }
 
 /* PRIVATE FUNCTIONS */
+fn read_orders_from_table(
+    conn: &Connection,
+    table_name: &str,
+) -> io::Result<Vec<EvaluationResult>> {
+    let query = format!("SELECT date, name, email, copies_nbr, file_name, price, material_type, print_type, status FROM {}", table_name);
+    let mut stmt = conn.prepare(&query).map_err(|e| {
+        io::Error::new(
+            io::ErrorKind::Other,
+            format!("Failed to prepare statement: {}", e),
+        )
+    })?;
+    let order_iter = stmt
+        .query_map([], |row| {
+            let date_str: String = row.get(0)?;
+            let date = datetime_to_chrono(&date_str);
+            if date.is_err() {
+                return Err(rusqlite::Error::FromSqlConversionFailure(
+                    0,
+                    rusqlite::types::Type::Text,
+                    Box::new(std::io::Error::new(
+                        std::io::ErrorKind::InvalidData,
+                        "Wrong date format",
+                    )),
+                ));
+            };
+            let material_type_str: String = row.get(6)?;
+            let material_type = str_to_print_material_type(&material_type_str);
+            if material_type.is_err() {
+                return Err(rusqlite::Error::FromSqlConversionFailure(
+                    6,
+                    rusqlite::types::Type::Text,
+                    Box::new(std::io::Error::new(
+                        std::io::ErrorKind::InvalidData,
+                        "Unknown material type",
+                    )),
+                ));
+            };
+            let print_type_str: String = row.get(7)?;
+            let print_type = str_to_print_type(&print_type_str);
+            if print_type.is_err() {
+                return Err(rusqlite::Error::FromSqlConversionFailure(
+                    8,
+                    rusqlite::types::Type::Text,
+                    Box::new(std::io::Error::new(
+                        std::io::ErrorKind::InvalidData,
+                        "Unknown print type",
+                    )),
+                ));
+            };
+            let status_str: String = row.get(8)?;
+            let status = str_to_status_type(&status_str);
+            if status.is_err() {
+                return Err(rusqlite::Error::FromSqlConversionFailure(
+                    7,
+                    rusqlite::types::Type::Text,
+                    Box::new(std::io::Error::new(
+                        std::io::ErrorKind::InvalidData,
+                        "Unknown status type",
+                    )),
+                ));
+            };
+            Ok(EvaluationResult {
+                date: date.unwrap(),
+                name: row.get(1)?,
+                email: row.get(2)?,
+                copies_nbr: row.get(3)?,
+                file_name: row.get(4)?,
+                price: row.get(5)?,
+                material_type: material_type.unwrap(),
+                print_type: print_type.unwrap(),
+                status: status.unwrap(),
+            })
+        })
+        .map_err(|e| {
+            io::Error::new(io::ErrorKind::Other, format!("Failed to query rows: {}", e))
+        })?;
+
+    let mut orders = Vec::new();
+    for order in order_iter {
+        orders.insert(
+            0,
+            order.map_err(|e| {
+                io::Error::new(io::ErrorKind::Other, format!("Failed to map row: {}", e))
+            })?,
+        );
+    }
+    Ok(orders)
+}
+
 fn write_evaluation_to_db(
     db_conn: &Connection,
     date: &str,
@@ -175,90 +264,19 @@ impl DatabaseInterfaceImpl for DatabaseSQLiteImpl {
             )
         })?;
 
-        let mut stmt = conn
-            .prepare("SELECT date, name, email, copies_nbr, file_name, price, material_type, print_type, status FROM Orders")
-            .map_err(|e| {
-                io::Error::new(
-                    io::ErrorKind::Other,
-                    format!("Failed to prepare statement: {}", e),
-                )
-            })?;
-        let order_iter = stmt
-            .query_map([], |row| {
-                let date_str: String = row.get(0)?;
-                let date = datetime_to_chrono(&date_str);
-                if date.is_err() {
-                    return Err(rusqlite::Error::FromSqlConversionFailure(
-                        0,
-                        rusqlite::types::Type::Text,
-                        Box::new(std::io::Error::new(
-                            std::io::ErrorKind::InvalidData,
-                            "Wrong date format",
-                        )),
-                    ));
-                };
-                let material_type_str: String = row.get(6)?;
-                let material_type = str_to_print_material_type(&material_type_str);
-                if material_type.is_err() {
-                    return Err(rusqlite::Error::FromSqlConversionFailure(
-                        6,
-                        rusqlite::types::Type::Text,
-                        Box::new(std::io::Error::new(
-                            std::io::ErrorKind::InvalidData,
-                            "Unknown material type",
-                        )),
-                    ));
-                };
-                let print_type_str: String = row.get(7)?;
-                let print_type = str_to_print_type(&print_type_str);
-                if print_type.is_err() {
-                    return Err(rusqlite::Error::FromSqlConversionFailure(
-                        8,
-                        rusqlite::types::Type::Text,
-                        Box::new(std::io::Error::new(
-                            std::io::ErrorKind::InvalidData,
-                            "Unknown print type",
-                        )),
-                    ));
-                };
-                let status_str: String = row.get(8)?;
-                let status = str_to_status_type(&status_str);
-                if status.is_err() {
-                    return Err(rusqlite::Error::FromSqlConversionFailure(
-                        7,
-                        rusqlite::types::Type::Text,
-                        Box::new(std::io::Error::new(
-                            std::io::ErrorKind::InvalidData,
-                            "Unknown status type",
-                        )),
-                    ));
-                };
-                Ok(EvaluationResult {
-                    date: date.unwrap(),
-                    name: row.get(1)?,
-                    email: row.get(2)?,
-                    copies_nbr: row.get(3)?,
-                    file_name: row.get(4)?,
-                    price: row.get(5)?,
-                    material_type: material_type.unwrap(),
-                    print_type: print_type.unwrap(),
-                    status: status.unwrap(),
-                })
-            })
-            .map_err(|e| {
-                io::Error::new(io::ErrorKind::Other, format!("Failed to query rows: {}", e))
-            })?;
+        read_orders_from_table(conn, "Orders")
+    }
 
-        let mut orders = Vec::new();
-        for order in order_iter {
-            orders.insert(
-                0,
-                order.map_err(|e| {
-                    io::Error::new(io::ErrorKind::Other, format!("Failed to map row: {}", e))
-                })?,
-            );
-        }
-        Ok(orders)
+    fn read_completed_orders_from_db(&self) -> io::Result<Vec<EvaluationResult>> {
+        let db_conn = self.db_conn.lock().unwrap();
+        let conn = db_conn.as_ref().ok_or_else(|| {
+            io::Error::new(
+                io::ErrorKind::NotConnected,
+                "Database connection is not initialized",
+            )
+        })?;
+
+        read_orders_from_table(conn, "CompletedOrders")
     }
 
     fn add_evaluation_to_db(&self, eval_result: &EvaluationResult) -> io::Result<()> {

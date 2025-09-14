@@ -29,4 +29,9 @@ impl DatabaseInterfaceImpl for DatabaseMockImpl {
     fn modify_order_in_database(&self, _order_id: &str, _new_status: &str) -> io::Result<()> {
         Ok(())
     }
+
+    fn read_completed_orders_from_db(&self) -> io::Result<Vec<EvaluationResult>> {
+        let orders = Vec::new();
+        return Ok(orders);
+    }
 }
