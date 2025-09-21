@@ -115,7 +115,7 @@ mod tests {
             price: 100.0,
             material_type: PrintMaterialType::PLA,
             status: StatusType::New,
-            print_type: PrintType::TBA,
+            print_type: PrintType::Standard,
         };
         let result = add_evaluation_to_db(&evaluation);
         assert!(result.is_ok());
