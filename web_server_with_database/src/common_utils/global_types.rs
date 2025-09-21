@@ -1,6 +1,7 @@
 use chrono;
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
+use strum_macros::EnumIter;
 
 /* PUBLIC TYPES */
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -18,7 +19,7 @@ pub enum StatusType {
     Canceled,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, EnumIter)]
 pub enum PrintType {
     Standard,
     Precise,

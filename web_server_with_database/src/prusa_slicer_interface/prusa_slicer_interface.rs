@@ -80,10 +80,10 @@ pub fn initialize_prusa_slicer_if(
         ));
     }
     let slicer_interface_lock = SLICER_IF_STATE.slicer_interface.lock().unwrap();
-    if let Err(e) = slicer_interface_lock.ping(prusa_path) {
+    if let Err(e) = slicer_interface_lock.initialize_slicer_int_impl(prusa_path, ws_path) {
         return Err(io::Error::new(
             e.kind(),
-            format!("Failed to ping Prusa Slicer: {}", e),
+            format!("Failed to initialize Prusa Slicer: {}", e),
         ));
     }
     if let Err(e) = set_printer_configuration(ws_path, price_params_rel_path) {

@@ -18,9 +18,10 @@ setup_project() {
     mkdir -p data_files
     mkdir -p data_files/received_orders
     mkdir -p data_files/processed_orders
-    if [ ! -f data_files/prusa_config.ini ]; then
-        touch data_files/prusa_config.ini
-        echo "Please add a correct config file in data_files/prusa_config.ini"
+    mkdir -p data_files/prusa_config_files
+    if [ ! -f data_files/prusa_config_files/prusa_config.ini ]; then
+        touch data_files/prusa_config_files/prusa_config.ini
+        echo "Please add a correct config file in data_files/prusa_config_files/prusa_config.ini"
     fi
     brew install --cask prusaslicer
     if [ ! -f ${price_calculator_params} ]; then
