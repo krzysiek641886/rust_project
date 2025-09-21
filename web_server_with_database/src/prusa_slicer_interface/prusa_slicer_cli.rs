@@ -21,14 +21,14 @@ fn slice_the_stl_file(
     prusa_path: &str,
     file_name: &str,
     ws_path: &str,
-    _print_type: &PrintType,
+    print_type: &PrintType,
 ) -> io::Result<String> {
-    let prusa_config_path = format!("{}/data_files/prusa_config.ini", ws_path);
     let received_file_path = format!("{}/data_files/received_orders/{}", ws_path, file_name);
     let processed_file_path = format!(
         "{}/data_files/processed_orders/{}.gcode",
         ws_path, file_name
     );
+    let prusa_config_path = format!("{}/data_files/prusa_config_files/prusa_config_{}.ini", ws_path, print_type);
 
     match Command::new(prusa_path)
         .arg("-g")

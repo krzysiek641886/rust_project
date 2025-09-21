@@ -67,8 +67,8 @@ if not exist data_files\received_orders (
     echo Run script with --setup flag to properly setup the project
     exit /b 1
 )
-if not exist data_files\prusa_config.ini (
-    echo Error: data_files/prusa_config.ini not found
+if not exist data_files\prusa_config_files (
+    echo Error: data_files/prusa_config_files not found
     echo Run script with --setup flag to properly setup the project
     exit /b 1
 )

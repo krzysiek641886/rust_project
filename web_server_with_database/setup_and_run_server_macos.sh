@@ -33,7 +33,7 @@ check_project_ready() {
     if [ ! -d data_files ] || 
        [ ! -d data_files/processed_orders ] || 
        [ ! -d data_files/received_orders ] || 
-       [ ! -f data_files/prusa_config.ini ] || 
+       [ ! -d data_files/prusa_config_files ] || 
        [ ! -f ${price_calculator_params} ]; then
         echo "Error: data_files directory structure not correctly configured"
         echo "Run script with --setup flag to properly setup the project"
