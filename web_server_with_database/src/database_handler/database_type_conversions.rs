@@ -40,6 +40,12 @@ pub fn datetime_to_chrono(
     Ok(chrono::Utc.from_utc_datetime(&naive_datetime))
 }
 
-pub fn str_to_print_type(_print_type: &str) -> Result<PrintType, &'static str> {
-    Ok(PrintType::TBA) // Placeholder implementation
+pub fn str_to_print_type(print_type: &str) -> Result<PrintType, &'static str> {
+    match print_type {
+        "Standard" => Ok(PrintType::Standard),
+        "Precise" => Ok(PrintType::Precise),
+        "ThickLayer" => Ok(PrintType::ThickLayer),
+        "FullFill" => Ok(PrintType::FullFill),
+        _ => Err("Unknown print type"),
+    }
 }

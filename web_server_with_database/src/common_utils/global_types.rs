@@ -1,6 +1,6 @@
+use chrono;
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
-use chrono;
 
 /* PUBLIC TYPES */
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -20,7 +20,10 @@ pub enum StatusType {
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum PrintType {
-    TBA,
+    Standard,
+    Precise,
+    ThickLayer,
+    FullFill,
 }
 
 impl Display for PrintMaterialType {
@@ -47,7 +50,10 @@ impl Display for StatusType {
 impl Display for PrintType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            PrintType::TBA => write!(f, "TBA"),
+            PrintType::Standard => write!(f, "Standard"),
+            PrintType::Precise => write!(f, "Precise"),
+            PrintType::ThickLayer => write!(f, "ThickLayer"),
+            PrintType::FullFill => write!(f, "FullFill"),
         }
     }
 }
