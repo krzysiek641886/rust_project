@@ -4,11 +4,12 @@ use std::fs::File;
 use std::io::{self, Write};
 use std::io::{BufRead, BufReader};
 use std::process::Command;
+use strum::IntoEnumIterator;
 
 /* IMPORTS FROM OTHER MODULES */
 use crate::common_utils::global_traits::SlicerInterfaceImpl;
 use crate::common_utils::global_types::{
-    EvaluatedPrintingParameters, PrintMaterialType, SubmittedOrderData,
+    EvaluatedPrintingParameters, PrintMaterialType, PrintType, SubmittedOrderData,
 };
 
 /* PRIVATE TYPES AND VARIABLES */
@@ -17,12 +18,20 @@ use crate::common_utils::global_types::{
 pub struct PrusaSlicerCli;
 
 /* HELPER FUNCTIONS */
-fn slice_the_stl_file(prusa_path: &str, file_name: &str, ws_path: &str) -> io::Result<String> {
-    let prusa_config_path = format!("{}/data_files/prusa_config.ini", ws_path);
+fn slice_the_stl_file(
+    prusa_path: &str,
+    file_name: &str,
+    ws_path: &str,
+    print_type: &PrintType,
+) -> io::Result<String> {
     let received_file_path = format!("{}/data_files/received_orders/{}", ws_path, file_name);
     let processed_file_path = format!(
         "{}/data_files/processed_orders/{}.gcode",
         ws_path, file_name
+    );
+    let prusa_config_path = format!(
+        "{}/data_files/prusa_config_files/prusa_config_{}.ini",
+        ws_path, print_type
     );
 
     match Command::new(prusa_path)
@@ -111,25 +120,38 @@ fn read_output_gcode_file(
 /* PUBLIC FUNCTIONS */
 impl SlicerInterfaceImpl for PrusaSlicerCli {
     /**
-     * @brief Pings the Prusa Slicer executable.
+     * @brief Pings the Prusa Slicer executable. And check that init files are present.
      *
      * This function checks if the Prusa Slicer executable is reachable by running a command.
      *
      * @param prusa_path Path of Prusa Slicer
      * @return io::Result<()> Result indicating success or failure of the operation.
      */
-    fn ping(&self, prusa_path: &str) -> io::Result<()> {
+    fn initialize_slicer_int_impl(&self, prusa_path: &str, ws_path: &str) -> io::Result<()> {
         let output = Command::new(prusa_path).arg("--help").output()?;
-        if output.status.success() {
-            Ok(())
-        } else {
+        if !output.status.success() {
             io::stderr().write_all(&output.stderr)?;
             println!("Failed to ping Prusa Slicer at path: {:?}", prusa_path);
-            Err(io::Error::new(
+            return Err(io::Error::new(
                 io::ErrorKind::Other,
                 "Failed to ping Prusa Slicer",
-            ))
+            ));
         }
+
+        for print_type in PrintType::iter() {
+            // This now correctly uses IntoEnumIterator
+            let prusa_config_path = format!(
+                "{}/data_files/prusa_config_files/prusa_config_{:?}.ini",
+                ws_path, print_type
+            );
+            if !std::path::Path::new(&prusa_config_path).exists() {
+                return Err(io::Error::new(
+                    io::ErrorKind::NotFound,
+                    format!("Prusa config file not found: {}", prusa_config_path),
+                ));
+            }
+        }
+        Ok(())
     }
 
     /**
@@ -149,17 +171,18 @@ impl SlicerInterfaceImpl for PrusaSlicerCli {
         slicer_path: &str,
         ws_path: &str,
     ) -> EvaluatedPrintingParameters {
-        let output_file_path = match slice_the_stl_file(slicer_path, &order.file_name, ws_path) {
-            Ok(path) => path,
-            Err(_) => {
-                // You may want to handle the error differently or return a default EvaluationResult
-                return EvaluatedPrintingParameters {
-                    time: 0,
-                    material_mm: 0,
-                    material_type: order.material_type.clone(),
-                };
-            }
-        };
+        let output_file_path =
+            match slice_the_stl_file(slicer_path, &order.file_name, ws_path, &order.print_type) {
+                Ok(path) => path,
+                Err(_) => {
+                    // You may want to handle the error differently or return a default EvaluationResult
+                    return EvaluatedPrintingParameters {
+                        time: 0,
+                        material_mm: 0,
+                        material_type: order.material_type.clone(),
+                    };
+                }
+            };
         return read_output_gcode_file(order.material_type.clone(), output_file_path.as_str());
     }
 }

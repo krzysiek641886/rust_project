@@ -6,7 +6,7 @@ use crate::common_utils::global_types::{
 use std::io::Result;
 
 pub trait SlicerInterfaceImpl: Send + Sync {
-    fn ping(&self, prusa_path: &str) -> Result<()>;
+    fn initialize_slicer_int_impl(&self, prusa_path: &str, ws_path: &str) -> Result<()>;
     fn get_expected_print_parameters(
         &self,
         order: &SubmittedOrderData,

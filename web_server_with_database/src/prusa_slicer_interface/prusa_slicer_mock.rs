@@ -21,7 +21,7 @@ pub struct PrusaSlicerMock {
 
 /* PUBLIC FUNCTIONS */
 impl SlicerInterfaceImpl for PrusaSlicerMock {
-    fn ping(&self, _prusa_path: &str) -> io::Result<()> {
+    fn initialize_slicer_int_impl(&self, _prusa_path: &str, _ws_path: &str) -> io::Result<()> {
         if self.ping_result {
             Ok(())
         } else {

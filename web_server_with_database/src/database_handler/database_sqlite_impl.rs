@@ -272,7 +272,7 @@ impl DatabaseInterfaceImpl for DatabaseSQLiteImpl {
     fn initialize_db(&self, db_name: &str) -> io::Result<()> {
         let conn = Connection::open(db_name).expect("Failed to open database");
         conn.execute(
-            "create table if not exists Orders (
+            "CREATE TABLE IF NOT EXISTS Orders (
             date datetime not null,
             name text not null,
             email text not null,
@@ -286,6 +286,22 @@ impl DatabaseInterfaceImpl for DatabaseSQLiteImpl {
             [],
         )
         .expect("Failed to create Orders table");
+
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS CompletedOrders (
+            date datetime not null,
+            name text not null,
+            email text not null,
+            copies_nbr integer not null,
+            file_name text not null,
+            price REAL not null,
+            material_type text not null,
+            print_type text not null,
+            status text not null
+            )",
+            [],
+        )
+        .expect("Failed to create CompletedOrders table");
         let mut db_conn = self.db_conn.lock().unwrap();
         *db_conn = Some(conn);
         return Ok(());

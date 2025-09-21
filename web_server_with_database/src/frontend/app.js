@@ -26,7 +26,10 @@ function createForm() {
             </select><br>
             <label for="print_type">Print type:</label>
             <select id="print_type" name="print_type" required>
-                <option value="TBA">TBA</option>
+                <option value="ThickStrong">Thick Strong</option>
+                <option value="ThickSoft">Thick Soft</option>
+                <option value="PreciseStrong">Precise Strong</option>
+                <option value="PreciseSoft">Precise Soft</option>
             </select><br>
             <label for="file">Choose file to upload:</label>
             <div id="drag-drop-placeholder"></div>
@@ -103,6 +106,7 @@ function showEvaluationResultPopup(data) {
                     <p><strong>Number of copies:</strong> ${data.copies_nbr}</p>
                     <p><strong>File Name:</strong> ${data.file_name}</p>
                     <p><strong>Material Type:</strong> ${data.material_type}</p>
+                    <p><strong>Print Type:</strong> ${data.print_type}</p>
                     <h2>Estimated Price</h2>
                     <p><strong>Printing price (without delivery):</strong> ${data.price}</p>
                     <button id="close-eval-popup">Close</button>

@@ -1,6 +1,7 @@
+use chrono;
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
-use chrono;
+use strum_macros::EnumIter;
 
 /* PUBLIC TYPES */
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -18,10 +19,15 @@ pub enum StatusType {
     Canceled,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, EnumIter)]
 pub enum PrintType {
-    TBA,
+    ThickStrong,
+    ThickSoft,
+    PreciseStrong,
+    PreciseSoft,
 }
+
+
 
 impl Display for PrintMaterialType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -47,7 +53,10 @@ impl Display for StatusType {
 impl Display for PrintType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            PrintType::TBA => write!(f, "TBA"),
+            PrintType::ThickStrong => write!(f, "ThickStrong"),
+            PrintType::ThickSoft => write!(f, "ThickSoft"),
+            PrintType::PreciseStrong => write!(f, "PreciseStrong"),
+            PrintType::PreciseSoft => write!(f, "PreciseSoft"),
         }
     }
 }
