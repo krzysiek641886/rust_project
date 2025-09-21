@@ -21,11 +21,13 @@ pub enum StatusType {
 
 #[derive(Clone, Debug, Deserialize, Serialize, EnumIter)]
 pub enum PrintType {
-    Standard,
-    Precise,
-    ThickLayer,
-    FullFill,
+    ThickStrong,
+    ThickSoft,
+    PreciseStrong,
+    PreciseSoft,
 }
+
+
 
 impl Display for PrintMaterialType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -51,10 +53,10 @@ impl Display for StatusType {
 impl Display for PrintType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            PrintType::Standard => write!(f, "Standard"),
-            PrintType::Precise => write!(f, "Precise"),
-            PrintType::ThickLayer => write!(f, "ThickLayer"),
-            PrintType::FullFill => write!(f, "FullFill"),
+            PrintType::ThickStrong => write!(f, "ThickStrong"),
+            PrintType::ThickSoft => write!(f, "ThickSoft"),
+            PrintType::PreciseStrong => write!(f, "PreciseStrong"),
+            PrintType::PreciseSoft => write!(f, "PreciseSoft"),
         }
     }
 }

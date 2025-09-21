@@ -203,7 +203,7 @@ mod tests {
             file_name: "file.stl".to_string(),
             nbr_of_chunks: 42,
             material_type: PrintMaterialType::PLA,
-            print_type: PrintType::Standard,
+            print_type: PrintType::ThickStrong,
         };
 
         let result = get_prusa_slicer_evaluation(&order);

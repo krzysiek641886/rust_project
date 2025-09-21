@@ -26,10 +26,10 @@ function createForm() {
             </select><br>
             <label for="print_type">Print type:</label>
             <select id="print_type" name="print_type" required>
-                <option value="Standard">Standard</option>
-                <option value="Precise">Precise</option>
-                <option value="ThickLayer">Thick Layer</option>
-                <option value="FullFill">Full Fill</option>
+                <option value="ThickStrong">Thick Strong</option>
+                <option value="ThickSoft">Thick Soft</option>
+                <option value="PreciseStrong">Precise Strong</option>
+                <option value="PreciseSoft">Precise Soft</option>
             </select><br>
             <label for="file">Choose file to upload:</label>
             <div id="drag-drop-placeholder"></div>

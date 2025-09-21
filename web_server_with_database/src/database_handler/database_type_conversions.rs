@@ -42,10 +42,10 @@ pub fn datetime_to_chrono(
 
 pub fn str_to_print_type(print_type: &str) -> Result<PrintType, &'static str> {
     match print_type {
-        "Standard" => Ok(PrintType::Standard),
-        "Precise" => Ok(PrintType::Precise),
-        "ThickLayer" => Ok(PrintType::ThickLayer),
-        "FullFill" => Ok(PrintType::FullFill),
+        "ThickStrong" => Ok(PrintType::ThickStrong),
+        "ThickSoft" => Ok(PrintType::ThickSoft),
+        "PreciseStrong" => Ok(PrintType::PreciseStrong),
+        "PreciseSoft" => Ok(PrintType::PreciseSoft),
         _ => Err("Unknown print type"),
     }
 }
