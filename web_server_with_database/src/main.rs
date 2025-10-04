@@ -8,8 +8,6 @@ mod prusa_slicer_interface;
 use actix_files as fs;
 use actix_web::{web, App, HttpServer};
 use clap::Parser;
-use lazy_static::lazy_static;
-use std::sync::Mutex;
 
 /* IMPORTS FROM OTHER MODULES */
 use api::{
@@ -34,18 +32,16 @@ struct Args {
     app_params: String,
 }
 
-struct State {
-    ws_path: Mutex<String>,
-}
-lazy_static! {
-    static ref MAIN_STATE: State = State {
-        ws_path: Mutex::new(String::from("")),
-    };
-}
-
 /* PUBLIC TYPES AND VARIABLES */
 
 /* PRIVATE FUNCTIONS */
+fn get_current_working_directory() -> String {
+    std::env::current_dir()
+        .unwrap()
+        .to_str()
+        .unwrap()
+        .to_string()
+}
 
 /**
  * @brief Initializes modules with command-line arguments.
@@ -56,20 +52,17 @@ lazy_static! {
  *
  * @param args Command-line arguments parsed into an Args struct.
  */
-fn initialize_modules_with_cmd_arguments(_args: Args) {
-    // This consumes the args struct and initializes the global state. No other use of args is allowed after this point.
-    let app_db_name = "data_files/price_evaluator_database.db";
-    let app_prusa_path = "/Applications/PrusaSlicer.app/Contents/MacOS/PrusaSlicer";
-    let app_app_params = "data_files/print_price_evaluator_config.json";
-    let app_ws_path = "/Users/krzysztofmroz/Projects/rust_project/web_server_with_database";
-    initialize_db(&app_db_name);
-    initialize_prusa_slicer_if(&app_ws_path, &app_prusa_path, &app_app_params)
+fn initialize_modules_with_cmd_arguments(args: Args) {
+    let print_price_evaluator_config_path = &args.app_params;
+    let db_name = "data_files/price_evaluator_database.db"; // Hardcoded for now, might be part of config later
+    let ws_path = get_current_working_directory();
+    initialize_db(&db_name);
+    initialize_prusa_slicer_if(&ws_path, &print_price_evaluator_config_path)
         .expect("Failed to initialize Prusa Slicer interface");
-    let mut ws_path_lock = MAIN_STATE.ws_path.lock().unwrap();
-    *ws_path_lock = app_ws_path.to_string();
     initialize_api_handler(true);
 }
 
+/* PUBLIC FUNCTIONS */
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     let args = Args::parse();
@@ -100,7 +93,5 @@ async fn main() -> std::io::Result<()> {
     .run()
     .await
 }
-
-/* PUBLIC FUNCTIONS */
 
 /* TESTS */

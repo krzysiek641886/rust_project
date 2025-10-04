@@ -70,9 +70,9 @@ fn set_printer_configuration(ws_path: &str, printer_configuration: &str) -> io::
 /* PUBLIC FUNCTIONS */
 pub fn initialize_prusa_slicer_if(
     ws_path: &str,
-    prusa_path: &str,
-    price_params_rel_path: &str,
+    print_price_evaluator_config_path: &str,
 ) -> io::Result<()> {
+    let prusa_path = "/Applications/PrusaSlicer.app/Contents/MacOS/PrusaSlicer";
     if let Err(e) = setup_paths_in_state(ws_path, prusa_path) {
         return Err(io::Error::new(
             e.kind(),
@@ -86,7 +86,7 @@ pub fn initialize_prusa_slicer_if(
             format!("Failed to initialize Prusa Slicer: {}", e),
         ));
     }
-    if let Err(e) = set_printer_configuration(ws_path, price_params_rel_path) {
+    if let Err(e) = set_printer_configuration(ws_path, print_price_evaluator_config_path) {
         return Err(io::Error::new(
             e.kind(),
             format!("Failed to set printer configuration: {}", e),
