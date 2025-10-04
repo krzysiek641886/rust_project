@@ -7,7 +7,7 @@ Before running the application, follow these configuration steps:
 1. Install [Prusa Slicer](https://www.prusa3d.com/prusaslicer/) on your computer
 2. Configure the `print_price_evaluator_config.json` file in the `data_files` directory with:
    - The path to your Prusa Slicer executable:
-     - Windows: `"prusa_path": "C:\\Program Files\\PrusaSlicer\\prusa-slicer.exe"`
+     - Windows: `"prusa_path": "C:/Program Files/PrusaSlicer-2.9.0/prusa-slicer.exe"`
      - macOS: `"prusa_path": "/Applications/PrusaSlicer.app/Contents/MacOS/PrusaSlicer"`
    - Your pricing parameters (see pricing guide below)
 3. Make sure you have the proper Prusa Slicer configuration files in the `data_files/prusa_config_files` directory.
