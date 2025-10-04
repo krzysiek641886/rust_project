@@ -10,7 +10,8 @@ Before running the application, follow these configuration steps:
      - Windows: `"prusa_path": "C:\\Program Files\\PrusaSlicer\\prusa-slicer.exe"`
      - macOS: `"prusa_path": "/Applications/PrusaSlicer.app/Contents/MacOS/PrusaSlicer"`
    - Your pricing parameters (see pricing guide below)
-3. Make sure you have the proper Prusa Slicer configuration files in the `data_files/prusa_config_files` directory
+3. Make sure you have the proper Prusa Slicer configuration files in the `data_files/prusa_config_files` directory.
+Default ones should be in there, but the true print parameters should replace them.
 
 ## Running the Application
 
