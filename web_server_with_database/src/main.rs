@@ -25,30 +25,13 @@ use prusa_slicer_interface::initialize_prusa_slicer_if;
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
 struct Args {
-    /// Database name
-    #[clap(
-        short = 'd',
-        long = "db-name",
-        default_value = "default_db_name.db",
-        help = "Database name for storing orders"
-    )]
-    db_name: String,
-    #[clap(short = 'w', long = "ws-path", help = "Path to the server directory")]
-    ws_path: String,
-    #[clap(
-        short = 'o',
-        long = "prusa-slicer-path",
-        help = "Path to Prusa Slicer executable"
-    )]
-    prusa_path: String,
-    #[clap(short = 's', long = "system", help = "Path to Prusa Slicer executable")]
-    system: String,
     #[clap(
         short = 'p',
-        long = "price-params",
-        help = "Path to the price parameters file"
+        long = "app-params",
+        help = "Path to the price parameters file",
+        default_value = "data_files/print_price_evaluator_config.json"
     )]
-    price_params: String,
+    app_params: String,
 }
 
 struct State {
@@ -73,13 +56,17 @@ lazy_static! {
  *
  * @param args Command-line arguments parsed into an Args struct.
  */
-fn initialize_modules_with_cmd_arguments(args: Args) {
+fn initialize_modules_with_cmd_arguments(_args: Args) {
     // This consumes the args struct and initializes the global state. No other use of args is allowed after this point.
-    initialize_db(&args.db_name);
-    initialize_prusa_slicer_if(&args.ws_path, &args.prusa_path, &args.price_params)
+    let app_db_name = "data_files/price_evaluator_database.db";
+    let app_prusa_path = "/Applications/PrusaSlicer.app/Contents/MacOS/PrusaSlicer";
+    let app_app_params = "data_files/print_price_evaluator_config.json";
+    let app_ws_path = "/Users/krzysztofmroz/Projects/rust_project/web_server_with_database";
+    initialize_db(&app_db_name);
+    initialize_prusa_slicer_if(&app_ws_path, &app_prusa_path, &app_app_params)
         .expect("Failed to initialize Prusa Slicer interface");
     let mut ws_path_lock = MAIN_STATE.ws_path.lock().unwrap();
-    *ws_path_lock = args.ws_path.to_string();
+    *ws_path_lock = app_ws_path.to_string();
     initialize_api_handler(true);
 }
 

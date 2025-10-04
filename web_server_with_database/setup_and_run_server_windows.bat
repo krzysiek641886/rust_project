@@ -3,7 +3,7 @@ setlocal
 
 REM Set paths (update prusa_slicer_path as needed)
 set prusa_slicer_path=C:\Program Files\PrusaSlicer-2.9.0\prusa-slicer.exe
-set price_params=data_files\print_price_evaluator_config.json
+set app_params=data_files\print_price_evaluator_config.json
 set current_directory=%cd%
 
 REM Parse command-line arguments
@@ -45,8 +45,8 @@ if not exist data_files\prusa_config.ini (
     echo Please add a correct config file in data_files\prusa_config.ini
 )
 REM PrusaSlicer installation must be done manually on Windows.
-if not exist "%price_params%" (
-    type nul > "%price_params%"
+if not exist "%app_params%" (
+    type nul > "%app_params%"
 )
 goto:eof
 
@@ -72,8 +72,8 @@ if not exist data_files\prusa_config_files (
     echo Run script with --setup flag to properly setup the project
     exit /b 1
 )
-if not exist "%price_params%" (
-    echo Error: %price_params% not found
+if not exist "%app_params%" (
+    echo Error: %app_params% not found
     echo Run script with --setup flag to properly setup the project
     exit /b 1
 )
@@ -93,7 +93,7 @@ if not exist "target\debug\web_server_with_database.exe" (
     echo Building project...
     cargo build
 )
-target\debug\web_server_with_database.exe --ws-path "%current_directory%" --db-name data_files\price_evaluator_database.db --prusa-slicer-path "%prusa_slicer_path%" --system windows --price-params "%price_params%"
+target\debug\web_server_with_database.exe --app-params "%app_params%"
 goto:eof
 
 REM Function to run the tests
