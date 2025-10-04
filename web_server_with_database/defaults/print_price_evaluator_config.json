@@ -1,4 +1,5 @@
 {
+    "prusa_path": "FILL_IN_PATH_TO_PRUSA_SLICER_EXECUTABLE",
     "material_rate_pla": 60,
     "material_rate_pet": 80,
     "material_rate_asa": 100,
