@@ -1,44 +1,71 @@
-## Test Package for 3D Print Price Evaluator
+# 3D Print Price Evaluator
 
-### Initial Setup
+## Setup Guide
 
-Before starting the program, follow these configuration steps:
+Before running the application, follow these configuration steps:
 
-1. Install Prusa Slicer on your PC
-2. Modify line 4 in `print_price_evaluator.bat` to point to your `prusa-slicer.exe` file location
-3. Update `data_files\price_calculator_params.json` with your pricing parameters (see pricing guide below)
-4. Copy your Prusa Slicer configuration into `data_files\prusa_config.ini` for custom printer settings
+1. Install [Prusa Slicer](https://www.prusa3d.com/prusaslicer/) on your computer
+2. Configure the `print_price_evaluator_config.json` file in the `data_files` directory with:
+   - The path to your Prusa Slicer executable:
+     - Windows: `"prusa_path": "C:\\Program Files\\PrusaSlicer\\prusa-slicer.exe"`
+     - macOS: `"prusa_path": "/Applications/PrusaSlicer.app/Contents/MacOS/PrusaSlicer"`
+   - Your pricing parameters (see pricing guide below)
+3. Make sure you have the proper Prusa Slicer configuration files in the `data_files/prusa_config_files` directory
 
-### Price Calculator Parameters Guide
+## Running the Application
 
-#### Material Rates (0.01 PLN/m)
-- PLA: 60
-- PET: 80
-- ASA: 100
+To run the application, simply execute the `web_server_with_database` executable with the path to your configuration file:
 
-#### Time-Based Pricing
-Time thresholds indicate hours above which specific hourly rates apply. For example, 0 means the rate applies from print start.
+```
+./web_server_with_database --app-params data_files/print_price_evaluator_config.json
+```
 
-##### Thresholds
+The application will start a web server at http://127.0.0.1:8080 where you can access the 3D print price calculator.
+
+## Price Calculator Configuration Guide
+
+### Configuration File Format
+
+The `print_price_evaluator_config.json` file should include these parameters:
+
+```json
+{
+    "prusa_path": "/path/to/prusa-slicer",
+    "material_rate_pla": 60,
+    "material_rate_pet": 80,
+    "material_rate_asa": 100,
+    "hourly_rate_time_threshold": [0, 10, 100],
+    "hourly_rate_pla_price": [30, 25, 20],
+    "hourly_rate_pet_price": [35, 30, 25],
+    "hourly_rate_asa_price": [40, 35, 30]
+}
+```
+
+### Material Rates (0.01 PLN/m)
+- PLA: 60 (0.01 PLN / m)
+- PET: 80 (0.01 PLN / m)
+- ASA: 100 (0.01 PLN / m)
+
+### Time-Based Pricing
+Time thresholds indicate hours above which specific hourly rates apply:
+
+#### Thresholds
 - `hourly_rate_time_threshold`: [0, 10, 100] hours
+  - Example: If the first value is 0, it means that the first hourly rate applies from the start of the print
+  - When print time exceeds 10 hours, the second rate applies
+  - When print time exceeds 100 hours, the third rate applies
 
-##### Hourly Rates (PLN/h)
-Material | Rate 1 | Rate 2 | Rate 3
----------|--------|--------|--------
-PLA | 30 | 25 | 20
-PET | 35 | 30 | 25
-ASA | 40 | 35 | 30
+#### Hourly Rates (PLN/h)
+| Material | Rate 1 (0-10h) | Rate 2 (10-100h) | Rate 3 (>100h) |
+|----------|----------------|------------------|----------------|
+| PLA      | 30             | 25               | 20             |
+| PET      | 35             | 30               | 25             |
+| ASA      | 40             | 35               | 30             |
 
+## Pricing Formula
 
-Guidelines for understanding price_calculator_params:
-    Material rates in 0.01 PLN / m
-    material_rate_pla: 60 (0.01 PLN / m)
-    material_rate_pet: 80 (0.01 PLN / m)
-    material_rate_asa: 100 (0.01 PLN / m)
-    Time thresholds are hours above which the hourly rate applies
-    Example: If the first value is 0, it means that the first hourly rate applies from the start of the print
-    hourly_rate_time_threshold: [0, 10, 100] hours
-    hourly_rate_pla_price: [30, 25, 20] PLN/h
-    hourly_rate_pet_price: [35, 30, 25] PLN/h
-    hourly_rate_asa_price: [40, 35, 30] PLN/h
+The price calculation follows this formula:
+- Gross Price = (Material Cost + Print Time Cost) × Number of Copies + 1 PLN
+- Material Cost = Material Usage × Material Rate / 100,000 (PLN)
+- Print Time Cost = Print Time (seconds) × Hourly Rate / 3600 (PLN)
 

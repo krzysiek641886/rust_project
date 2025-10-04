@@ -8,8 +8,6 @@ mod prusa_slicer_interface;
 use actix_files as fs;
 use actix_web::{web, App, HttpServer};
 use clap::Parser;
-use lazy_static::lazy_static;
-use std::sync::Mutex;
 
 /* IMPORTS FROM OTHER MODULES */
 use api::{
@@ -25,44 +23,25 @@ use prusa_slicer_interface::initialize_prusa_slicer_if;
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
 struct Args {
-    /// Database name
-    #[clap(
-        short = 'd',
-        long = "db-name",
-        default_value = "default_db_name.db",
-        help = "Database name for storing orders"
-    )]
-    db_name: String,
-    #[clap(short = 'w', long = "ws-path", help = "Path to the server directory")]
-    ws_path: String,
-    #[clap(
-        short = 'o',
-        long = "prusa-slicer-path",
-        help = "Path to Prusa Slicer executable"
-    )]
-    prusa_path: String,
-    #[clap(short = 's', long = "system", help = "Path to Prusa Slicer executable")]
-    system: String,
     #[clap(
         short = 'p',
-        long = "price-params",
-        help = "Path to the price parameters file"
+        long = "app-params",
+        help = "Path to the price parameters file",
+        default_value = "data_files/print_price_evaluator_config.json"
     )]
-    price_params: String,
-}
-
-struct State {
-    ws_path: Mutex<String>,
-}
-lazy_static! {
-    static ref MAIN_STATE: State = State {
-        ws_path: Mutex::new(String::from("")),
-    };
+    app_params: String,
 }
 
 /* PUBLIC TYPES AND VARIABLES */
 
 /* PRIVATE FUNCTIONS */
+fn get_current_working_directory() -> String {
+    std::env::current_dir()
+        .unwrap()
+        .to_str()
+        .unwrap()
+        .to_string()
+}
 
 /**
  * @brief Initializes modules with command-line arguments.
@@ -74,15 +53,16 @@ lazy_static! {
  * @param args Command-line arguments parsed into an Args struct.
  */
 fn initialize_modules_with_cmd_arguments(args: Args) {
-    // This consumes the args struct and initializes the global state. No other use of args is allowed after this point.
-    initialize_db(&args.db_name);
-    initialize_prusa_slicer_if(&args.ws_path, &args.prusa_path, &args.price_params)
+    let print_price_evaluator_config_path = &args.app_params;
+    let db_name = "data_files/price_evaluator_database.db"; // Hardcoded for now, might be part of config later
+    let ws_path = get_current_working_directory();
+    initialize_db(&db_name);
+    initialize_prusa_slicer_if(&ws_path, &print_price_evaluator_config_path)
         .expect("Failed to initialize Prusa Slicer interface");
-    let mut ws_path_lock = MAIN_STATE.ws_path.lock().unwrap();
-    *ws_path_lock = args.ws_path.to_string();
     initialize_api_handler(true);
 }
 
+/* PUBLIC FUNCTIONS */
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     let args = Args::parse();
@@ -113,7 +93,5 @@ async fn main() -> std::io::Result<()> {
     .run()
     .await
 }
-
-/* PUBLIC FUNCTIONS */
 
 /* TESTS */
