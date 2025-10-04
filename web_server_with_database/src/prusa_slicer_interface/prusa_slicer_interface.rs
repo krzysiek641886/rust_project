@@ -67,20 +67,39 @@ fn set_printer_configuration(ws_path: &str, printer_configuration: &str) -> io::
     Ok(())
 }
 
+fn get_string_param_from_json_file(param_name: &str, file_path: &str) -> String {
+    // Throw an error and exit if file cannot be read
+    let file_content =
+        std::fs::read_to_string(file_path).expect("Failed to read the JSON configuration file");
+    // Parse the JSON content
+    let json_value: serde_json::Value =
+        serde_json::from_str(&file_content).expect("Failed to parse JSON configuration file");
+    // Extract the parameter value as a string
+    json_value[param_name]
+        .as_str()
+        .expect(&format!(
+            "Parameter '{}' not found or is not a string",
+            param_name
+        ))
+        .to_string()
+}
+
 /* PUBLIC FUNCTIONS */
 pub fn initialize_prusa_slicer_if(
     ws_path: &str,
     print_price_evaluator_config_path: &str,
 ) -> io::Result<()> {
-    let prusa_path = "/Applications/PrusaSlicer.app/Contents/MacOS/PrusaSlicer";
-    if let Err(e) = setup_paths_in_state(ws_path, prusa_path) {
+    let prusa_path =
+        get_string_param_from_json_file("prusa_path", print_price_evaluator_config_path);
+    // let prusa_path = "/Applications/PrusaSlicer.app/Contents/MacOS/PrusaSlicer";
+    if let Err(e) = setup_paths_in_state(ws_path, &prusa_path) {
         return Err(io::Error::new(
             e.kind(),
             format!("Failed to set up paths in state: {}", e),
         ));
     }
     let slicer_interface_lock = SLICER_IF_STATE.slicer_interface.lock().unwrap();
-    if let Err(e) = slicer_interface_lock.initialize_slicer_int_impl(prusa_path, ws_path) {
+    if let Err(e) = slicer_interface_lock.initialize_slicer_int_impl(&prusa_path, ws_path) {
         return Err(io::Error::new(
             e.kind(),
             format!("Failed to initialize Prusa Slicer: {}", e),
