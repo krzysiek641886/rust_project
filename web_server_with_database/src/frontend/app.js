@@ -110,14 +110,9 @@ function showEvaluationResultPopup(data) {
                     <h2>Estimated Price</h2>
                     <p><strong>Printing price (without delivery):</strong> ${data.price}</p>
                     <button id="close-eval-popup">Close</button>
-                    <button id="place-order-button">Place order</button>
                 `;
     document.body.appendChild(popup);
     document.getElementById("close-eval-popup").onclick = function () {
-        document.body.removeChild(popup);
-    };
-    // Temporary button to simulate placing an order
-    document.getElementById("place-order-button").onclick = function () {
         document.body.removeChild(popup);
     };
 }
