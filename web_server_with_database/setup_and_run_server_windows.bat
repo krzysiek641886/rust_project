@@ -3,7 +3,7 @@ setlocal
 
 REM Set paths (update prusa_slicer_path as needed)
 set prusa_slicer_path=C:\Program Files\PrusaSlicer-2.9.0\prusa-slicer.exe
-set price_calculator_params=data_files\price_calculator_params.json
+set price_params=data_files\print_price_evaluator_config.json
 set current_directory=%cd%
 
 REM Parse command-line arguments
@@ -45,8 +45,8 @@ if not exist data_files\prusa_config.ini (
     echo Please add a correct config file in data_files\prusa_config.ini
 )
 REM PrusaSlicer installation must be done manually on Windows.
-if not exist "%price_calculator_params%" (
-    type nul > "%price_calculator_params%"
+if not exist "%price_params%" (
+    type nul > "%price_params%"
 )
 goto:eof
 
@@ -72,8 +72,8 @@ if not exist data_files\prusa_config_files (
     echo Run script with --setup flag to properly setup the project
     exit /b 1
 )
-if not exist "%price_calculator_params%" (
-    echo Error: %price_calculator_params% not found
+if not exist "%price_params%" (
+    echo Error: %price_params% not found
     echo Run script with --setup flag to properly setup the project
     exit /b 1
 )
@@ -93,7 +93,7 @@ if not exist "target\debug\web_server_with_database.exe" (
     echo Building project...
     cargo build
 )
-target\debug\web_server_with_database.exe --ws-path "%current_directory%" --db-name data_files\price_evaluator_database.db --prusa-slicer-path "%prusa_slicer_path%" --system windows --price-params "%price_calculator_params%"
+target\debug\web_server_with_database.exe --ws-path "%current_directory%" --db-name data_files\price_evaluator_database.db --prusa-slicer-path "%prusa_slicer_path%" --system windows --price-params "%price_params%"
 goto:eof
 
 REM Function to run the tests
@@ -116,7 +116,7 @@ mkdir release_package\data_files\received_orders
 mkdir release_package\data_files\processed_orders
 mkdir release_package\src\frontend
 copy target\release\web_server_with_database.exe release_package\
-copy defaults\price_calculator_params.json release_package\data_files
+copy defaults\print_price_evaluator_config.json release_package\data_files
 copy defaults\prusa_config.ini release_package\data_files
 copy defaults\print_price_evaluator.bat release_package\print_price_evaluator.bat
 copy defaults\README.md release_package\README.md

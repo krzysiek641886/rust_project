@@ -6,7 +6,7 @@ Before starting the program, follow these configuration steps:
 
 1. Install Prusa Slicer on your PC
 2. Modify line 4 in `print_price_evaluator.bat` to point to your `prusa-slicer.exe` file location
-3. Update `data_files\price_calculator_params.json` with your pricing parameters (see pricing guide below)
+3. Update `data_files\print_price_evaluator_config.json` with your pricing parameters (see pricing guide below)
 4. Copy your Prusa Slicer configuration into `data_files\prusa_config.ini` for custom printer settings
 
 ### Price Calculator Parameters Guide
@@ -30,7 +30,7 @@ PET | 35 | 30 | 25
 ASA | 40 | 35 | 30
 
 
-Guidelines for understanding price_calculator_params:
+Guidelines for understanding print_price_evaluator_config:
     Material rates in 0.01 PLN / m
     material_rate_pla: 60 (0.01 PLN / m)
     material_rate_pet: 80 (0.01 PLN / m)

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 prusa_slicer_path="/Applications/PrusaSlicer.app/Contents/MacOS/PrusaSlicer"
-price_calculator_params="data_files/price_calculator_params.json"
+price_params="data_files/print_price_evaluator_config.json"
 
 # Function to display the help menu
 show_help() {
@@ -24,8 +24,8 @@ setup_project() {
         echo "Please add a correct config file in data_files/prusa_config_files/prusa_config.ini"
     fi
     brew install --cask prusaslicer
-    if [ ! -f ${price_calculator_params} ]; then
-        touch ${price_calculator_params}
+    if [ ! -f ${price_params} ]; then
+        touch ${price_params}
     fi
 
 }
@@ -35,7 +35,7 @@ check_project_ready() {
        [ ! -d data_files/processed_orders ] || 
        [ ! -d data_files/received_orders ] || 
        [ ! -d data_files/prusa_config_files ] || 
-       [ ! -f ${price_calculator_params} ]; then
+       [ ! -f ${price_params} ]; then
         echo "Error: data_files directory structure not correctly configured"
         echo "Run script with --setup flag to properly setup the project"
         exit;
@@ -58,7 +58,7 @@ check_project_ready() {
 run_server() {
     check_project_ready
     echo "Starting the server..."
-    cargo run -- --ws-path ${PWD} --db-name data_files/price_evaulator_database.db --prusa-slicer-path ${prusa_slicer_path} --system macos --price-params ${price_calculator_params}
+    cargo run -- --ws-path ${PWD} --db-name data_files/price_evaulator_database.db --prusa-slicer-path ${prusa_slicer_path} --system macos --price-params ${price_params}
 }
 
 # Function to run the server
